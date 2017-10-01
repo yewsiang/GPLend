@@ -10,6 +10,12 @@ EG. Real values into floats
 def loan_amnt_prefn(data_str):
   return int(data_str)
 
+def term_prefn(data_str):
+  num_months, string = data_str.split()
+  if string != "months":
+    raise Exception("Unexpected data string value: %s" % data_str)
+  return int(num_months)
+
 def int_rate_prefn(data_str):
   if data_str[-1] != "%":
     raise Exception("Unexpected data string value: %s" % data_str)
@@ -24,7 +30,7 @@ def emp_length_prefn(data_str):
   elif data_str == "< 1 year":
     val = 0.5
   elif data_str == "1 year":
-    val = 1
+    val = 1.
   elif data_str == "10+ years":
     val = 10.
   elif data_str[-5:] == "years":
@@ -120,13 +126,13 @@ def inq_last_6mths_prefn(data_str):
 
 def mths_since_last_delinq_prefn(data_str):
   if data_str == "":
-    return 100000000
+    return 1000
   else:
     return int(data_str)
 
 def mths_since_last_record_prefn(data_str):
   if data_str == "":
-    return 100000000
+    return 1000
   else:
     return int(data_str)
 

@@ -1,8 +1,7 @@
 
+import math
 import numpy as np
 from data import data_headers
-
-# ========== FEATURE ENGINEERING FUNCTIONS ==========
 
 def one_hot_encoding(total_classes, cls):
   if total_classes == 2:
@@ -11,6 +10,13 @@ def one_hot_encoding(total_classes, cls):
   one_hot_vec[cls] = 1
   return one_hot_vec
 
+# ========== FEATURE ENGINEERING FUNCTIONS ==========
+"""
+Simply convert each row of raw CSV data into features
+that will be used for training.
+Given a data row, Each function here will generate a 
+scalar/vector that will finally be appended together.
+"""
 def loan_amnt_fn(row):
   loan_amnt = row[data_headers.get("loan_amnt")]
   return loan_amnt
@@ -21,7 +27,9 @@ def int_rate_fn(row):
 
 def installment_fn(row):
   installment = row[data_headers.get("installment")]
-  return installment
+  term = row[data_headers.get("term")]
+  expected_total_payment = installment * term
+  return np.array([installment, expected_total_payment])
 
 def emp_length_fn(row):
   emp_length = row[data_headers.get("emp_length")]
@@ -60,11 +68,11 @@ def inq_last_6mths_fn(row):
 
 def mths_since_last_delinq_fn(row):
   mths_since_last_delinq = row[data_headers.get("mths_since_last_delinq")]
-  return mths_since_last_delinq
+  return math.log(mths_since_last_delinq + 1e-3)
 
 def mths_since_last_record_fn(row):
   mths_since_last_record = row[data_headers.get("mths_since_last_record")]
-  return mths_since_last_record
+  return math.log(mths_since_last_record + 1e-3)
 
 def open_acc_fn(row):
   open_acc = row[data_headers.get("open_acc")]
@@ -89,4 +97,6 @@ def loan_status_fn(row):
 
 def total_pymnt_fn(row):
   total_pymnt = row[data_headers.get("total_pymnt")]
-  return total_pymnt
+  #loan_amnt = row[data_headers.get("loan_amnt")]
+  #percentage_of_loan_returned = total_pymnt / loan_amnt
+  return total_pymnt #percentage_of_loan_returned
