@@ -23,8 +23,8 @@ data_headers = {
     "pub_rec_bankruptcies":   17, # Number of public record bankruptcies.
     
     # Targets
-    "loan_status":            17, # Current status of the loan.
-    "total_pymnt":            18, # Payments received to date for total amount funded.
+    "loan_status":            18, # Current status of the loan.
+    "total_pymnt":            19, # Payments received to date for total amount funded.
 }
 
 import csv
