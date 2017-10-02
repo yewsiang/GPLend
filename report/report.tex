@@ -1,0 +1,104 @@
+\def\year{2017}\relax
+
+\documentclass[letterpaper]{article}
+\usepackage{aaai17}
+\usepackage{times}
+\usepackage{helvet}
+\usepackage{courier}
+\usepackage{amsmath}
+\usepackage{amsfonts}
+\usepackage{multirow}
+\frenchspacing
+\setlength{\pdfpagewidth}{8.5in}
+\setlength{\pdfpageheight}{11in}
+\pdfinfo{
+/Title (Gaussian Process Regression for Loan Recommendations)
+/Author (Put All Your Authors Here, Separated by Commas)}
+\setcounter{secnumdepth}{1}  
+ \begin{document}
+% The file aaai.sty is the style file for AAAI Press 
+% proceedings, working notes, and technical reports.
+%
+\title{Gaussian Process Regression for Loan Recommendations}
+\author{
+National University of Singapore \\
+CS4246 Group 06 \AND
+\normalsize\normalfont\textbf{Gao Bo, A0} \\ 
+\normalsize\normalfont\textbf{Jack Shee, A0} \\
+\normalsize\normalfont\textbf{Mikaela Angelina Chan Uy, A0} \And
+\normalsize\normalfont\textbf{Tang Yew Siang, A0139817U} \\
+\normalsize\normalfont\textbf{Tran Hoang Bao Linh, A0} 
+}
+
+\maketitle
+\begin{abstract}
+Hello
+\end{abstract}
+
+\section{Introduction}
+\noindent Hello
+
+\section{Motivating Application}
+Hello
+
+\section{Technical Approach}
+Gaussian process:
+
+\begin{align*}
+	\mu(\textbf{x}) &= E[f(\textbf{x})] \\
+	k(\textbf{x}, \textbf{x}') &= E[(f(\textbf{x}) - \mu(\textbf{x}))(f(\textbf{x}') - \mu(\textbf{x}')] \\
+\end{align*}
+
+The GP can then be denoted as:
+\[f(\textbf{x}) \sim \mathcal{GP}(\mu(\textbf{x}), k(\textbf{x}, \textbf{x}'))\]
+
+\subsection{Problem Definition}
+Hello
+
+\begin{enumerate}
+	\item Hello
+	\item Hello
+\end{enumerate}
+
+\subsection{Model Definition}
+Hello
+
+\section{Experimental Setup}
+\subsection{Dataset}
+Hello
+
+\section{Experimental Evaluation}
+Hello 
+\begin{center}
+	\begin{tabular}{lllll}
+		\hline
+		Type & Features & Kernel & MAE & $R^{2}$ \\
+		\hline
+		\multirow{3}{*}{Per-Movie} &\multirow{3}{*}{Numeric}
+		 & RBF & 0.7823 & \textbf{0.2308}\\
+		& & Cosine & 0.7823 & \textbf{0.2308} \\
+		& & Linear & 0.7823 & 0.2307 \\
+		\hline
+		\multirow{5}{*}{Per-User} & Numeric & \multirow{5}{*}{RBF} & \textbf{0.8127} & \textbf{0.1663} \\
+		& OneHotEncoding & & 0.8273 & 0.1424 \\
+		& Word2vec Genres & & 0.8210 & 0.1544 \\
+		& Word2vec Movies & & 0.8278 & 0.1424 \\
+		& Probabilistic   & & 0.8204 & 0.1534\\
+		\hline
+	\end{tabular}
+\end{center}
+
+\section{References}
+
+
+\section{Roles and Contributions}
+
+\begin{description}
+\item [Gao Bo]
+\item [Jack Shee]
+\item [Mikaela Angelina Chan Uy] 
+\item [Tang Yew Siang]
+\item [Tran Hoang Bao Linh]
+\end{description}
+
+\end{document}
