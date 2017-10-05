@@ -16,14 +16,14 @@ def print_loan_stats(num_loans, total_loans, loans_given, payments_rec, profits,
   print("Profits:           $ %.1f" % profits)
   print("Profit Percentage: %.1f%%" % profit_perc)
     
-def lend_using_target_only(regressed_payment, X, y, scaler, threshold=1.0):
+def lend_using_target_only(regressed_payment, X, y, X_scaler, threshold=1.0, verbose=True):
   """
   Simulate making loans with the trained model using only the target
   (the regressed total payment of the customer).
   If predicted total payment of customer is below (threshold * X[0]) 
   (where X[0] is the loan amount), reject making the loan.
   """
-  loan_amount = scaler.inverse_transform(X)[:,0]
+  loan_amount = X_scaler.inverse_transform(X)[:,0]
   satisfactory_payment = threshold * loan_amount
   loans_approved = regressed_payment > satisfactory_payment
   
@@ -39,8 +39,11 @@ def lend_using_target_only(regressed_payment, X, y, scaler, threshold=1.0):
   profits = payments - loans_given
   profit_percentage = profits / loans_given * 100
   
-  print("\n--- Without model ---")
-  print_loan_stats(X.shape[0], X.shape[0], loans_given_prev, payments_prev, profits_prev, profit_percentage_prev)
-  
-  print("\n---- With model ----")
-  print_loan_stats(np.sum(loans_approved), X.shape[0], loans_given, payments, profits, profit_percentage)
+  if verbose:
+    #print("\n---- Loan to All ----")
+    #print_loan_stats(X.shape[0], X.shape[0], loans_given_prev, payments_prev, profits_prev, profit_percentage_prev)
+    
+    print("\n---- Threshold: %f ----" % threshold)
+    print_loan_stats(np.sum(loans_approved), X.shape[0], loans_given, payments, profits, profit_percentage)
+
+  return profits
