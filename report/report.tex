@@ -1,6 +1,6 @@
 \def\year{2017}\relax
 
-\documentclass[letterpaper]{article}
+\documentclass[a4paper]{article}
 \usepackage{aaai17}
 \usepackage{times}
 \usepackage{helvet}
@@ -11,11 +11,42 @@
 \frenchspacing
 \setlength{\pdfpagewidth}{8.5in}
 \setlength{\pdfpageheight}{11in}
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%% NEW COMMANDS %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\newtheoremstyle{genius}
+{1.5} {1.5} {} {} {\scshape} {.} {.5em} {}
+% %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\newcommand{\e}{\ensuremath{\epsilon}}
+\newcommand{\bb}[1]{\ensuremath{\mathbb{#1}}}
+\newcommand{\bbm}[1]{\ensuremath{\mathbbm{#1}}}
+\newcommand{\ca}[1]{\ensuremath{\mathcal{#1}}}
+\newcommand{\sgn}{\ensuremath{\text{sgn}}}
+\newcommand{\abs}[1]{\ensuremath{\left| #1 \right|}}
+\newcommand\defeq{\mathrel{\overset{\makebox[0pt]{\mbox{\normalfont\tiny\sffamily
+\delta}}}{=}}}
+\newcommand{\mfl}[1]{\ensuremath{\left\lfloor #1 \right\rfloor}}
+\newcommand{\bfl}[2]{\ensuremath{\left\lfloor \frac{#1}{#2} \right\rfloor}}
+\newcommand{\E}{\ensuremath{\mathbb{E}}}
+\newcommand{\V}{\ensuremath{\mathbb{V}}}
+\renewcommand{\o}{\ensuremath{\text{o}}}
+% %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\theoremstyle{genius}
+\newtheorem{ex}{Example}
+\newtheorem{defn}[ex]{Definition}
+\newtheorem{lem}[ex]{Lemma}
+\newtheorem*{pf}{Proof}
+% \theoremstyle{plain}
+\newtheorem{thm}[ex]{Theorem}
+\newtheorem{prop}[ex]{Proposition}
+\newtheorem{col}[ex]{Corollary}
+\newtheorem{rem}[ex]{Remark}
+
 \pdfinfo{
 /Title (Gaussian Process Regression for Loan Recommendations)
-/Author (Put All Your Authors Here, Separated by Commas)}
-\setcounter{secnumdepth}{1}  
- \begin{document}
+/Author (Gao Bo, Jack Shee, Mikaela Angelina Chan Uy, Tang Yiew Siang, Tran Hoang Bao Linh)}
+
+\setcounter{secnumdepth}{1}
+\begin{document}
 % The file aaai.sty is the style file for AAAI Press 
 % proceedings, working notes, and technical reports.
 %
@@ -27,7 +58,7 @@ CS4246 Group 06 \AND
 \normalsize\normalfont\textbf{Jack Shee, A0} \\
 \normalsize\normalfont\textbf{Mikaela Angelina Chan Uy, A0} \And
 \normalsize\normalfont\textbf{Tang Yew Siang, A0139817U} \\
-\normalsize\normalfont\textbf{Tran Hoang Bao Linh, A0} 
+\normalsize\normalfont\textbf{Tran Hoang Bao Linh, A0112184R}
 }
 
 \maketitle

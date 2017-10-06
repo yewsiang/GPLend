@@ -1,0 +1,7 @@
+.idea/workspace.xml
+__pycache__/data.cpython-36.pyc
+__pycache__/evaluation.cpython-36.pyc
+__pycache__/features.cpython-36.pyc
+__pycache__/preprocessing.cpython-36.pyc
+auxil/report.aux
+dataset/dummy_linh.csv
