@@ -35,6 +35,17 @@ def plot_portfolio_performance(t, mean, std):
     """
     fig = plt.figure(figsize=(25,12))
 
+    ymin = np.min(mean[0]-std[0])
+    ymax = np.max(mean[0]+std[0])
+
+    for i in range(1,4):
+        model_min = np.min(mean[i]-std[i])
+        model_max = np.min(mean[i]+std[i])
+        if(model_min < ymin):
+            ymin = model_min
+        if(model_max > ymax):
+            ymax = model_max
+
     #2x2 with 4 plots
     sub1 = fig.add_subplot(2,2,1)
     sub1.set_title('Model Name 1')
@@ -42,6 +53,7 @@ def plot_portfolio_performance(t, mean, std):
     sub1.set_ylabel("$")
     sub1.plot(t,mean[0],'red')
     sub1.fill_between(t, mean[0]-std[0], mean[0]+ std[0],alpha=0.1, color = 'r')
+    sub1.set_ylim([ymin,ymax])
 
     sub2 = fig.add_subplot(2,2,2)
     sub2.set_title('Model Name 2')
@@ -49,6 +61,7 @@ def plot_portfolio_performance(t, mean, std):
     sub2.set_ylabel("$")
     sub2.plot(t,mean[1],'blue')
     sub2.fill_between(t, mean[1]-std[1], mean[0]+ std[0],alpha=0.1, color = 'b')
+    sub2.set_ylim([ymin,ymax])
 
     sub3 = fig.add_subplot(2,2,3)
     sub3.set_title('Model Name 3')
@@ -56,6 +69,7 @@ def plot_portfolio_performance(t, mean, std):
     sub3.set_ylabel("$")
     sub3.plot(t,mean[2],'green')
     sub3.fill_between(t, mean[2]-std[2], mean[2]+ std[2],alpha=0.1, color = 'g')
+    sub3.set_ylim([ymin,ymax])
 
     sub4 = fig.add_subplot(2,2,4)
     sub4.set_title('Model Name 4')
@@ -63,6 +77,7 @@ def plot_portfolio_performance(t, mean, std):
     sub4.set_ylabel("$")
     sub4.plot(t,mean[3],'black')
     sub4.fill_between(t, mean[3]-std[3], mean[3]+ std[3],alpha=0.1, color = 'k')
+    sub4.set_ylim([ymin,ymax])
 
     plt.tight_layout()
     plt.show()
