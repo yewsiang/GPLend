@@ -4,3 +4,4 @@ __pycache__/evaluation.cpython-36.pyc
 __pycache__/features.cpython-36.pyc
 __pycache__/preprocessing.cpython-36.pyc
 dataset/dummy_linh.csv
+train_m.ipynb
