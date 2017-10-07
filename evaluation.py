@@ -1,5 +1,8 @@
 
 import numpy as np
+from sklearn.svm import SVR
+from sklearn.linear_model import LinearRegression, HuberRegressor
+from simulation import lend_using_target_only
 
 def evaluate_model(model, X, y):
   pred = model.predict(X)
@@ -9,41 +12,43 @@ def evaluate_model(model, X, y):
   print("Mean absolute error: %.3f" % mean_abs_err)
   print("R^2 Score:           %.3f" % score)
 
-def print_loan_stats(num_loans, total_loans, loans_given, payments_rec, profits, profit_perc):
-  print("Loans approved:    %d/%d" % (num_loans, total_loans))
-  print("Loans given:       $ %.1f" % loans_given)
-  print("Payments received: $ %.1f\n" % payments_rec)
-  print("Profits:           $ %.1f" % profits)
-  print("Profit Percentage: %.1f%%" % profit_perc)
-    
-def lend_using_target_only(regressed_payment, X, y, X_scaler, threshold=1.0, verbose=True):
-  """
-  Simulate making loans with the trained model using only the target
-  (the regressed total payment of the customer).
-  If predicted total payment of customer is below (threshold * X[0]) 
-  (where X[0] is the loan amount), reject making the loan.
-  """
-  loan_amount = X_scaler.inverse_transform(X)[:,0]
-  satisfactory_payment = threshold * loan_amount
-  loans_approved = regressed_payment > satisfactory_payment
-  
-  # Loaning to all
-  loans_given_prev = np.sum(loan_amount[:]) / 1000
-  payments_prev = np.sum(y) / 1000
-  profits_prev = payments_prev - loans_given_prev
-  profit_percentage_prev = profits_prev / loans_given_prev * 100
-  
-  # Loan according to model and threshold
-  loans_given = np.sum(loan_amount[loans_approved]) / 1000
-  payments = np.sum(y[loans_approved]) / 1000
-  profits = payments - loans_given
-  profit_percentage = profits / loans_given * 100
-  
-  if verbose:
-    #print("\n---- Loan to All ----")
-    #print_loan_stats(X.shape[0], X.shape[0], loans_given_prev, payments_prev, profits_prev, profit_percentage_prev)
-    
-    print("\n---- Threshold: %f ----" % threshold)
-    print_loan_stats(np.sum(loans_approved), X.shape[0], loans_given, payments, profits, profit_percentage)
+def train_and_test_other_models(X_train, y_train, X_test, y_test, X_scaler):
+  # Linear Regression
+  print("\n-- Linear Regression --")
+  lin_reg = LinearRegression()
+  lin_reg.fit(X_train, y_train)
+  evaluate_model(lin_reg, X_test, y_test)
 
-  return profits
+  # Huber Regressor
+  print("\n-- Huber Regressor --")
+  hub_reg = HuberRegressor(epsilon=1.)
+  hub_reg.fit(X_train, y_train)
+  evaluate_model(hub_reg, X_test, y_test)
+
+  # Linear SVM
+  print("\n-- Linear SVM --")
+  svm_lin = SVR(kernel="linear", C=1e3)
+  svm_lin.fit(X_train, y_train)
+  evaluate_model(svm_lin, X_test, y_test)
+
+  # Poly SVM
+  print("\n-- Poly SVM 2 --")
+  svm_poly_2 = SVR(kernel="poly", degree=2, C=1e5)
+  svm_poly_2.fit(X_train, y_train)
+  evaluate_model(svm_poly_2, X_test, y_test)
+
+  print("\n-- Poly SVM 5 --")
+  svm_poly_5 = SVR(kernel="poly", degree=5, C=1e8)
+  svm_poly_5.fit(X_train, y_train)
+  evaluate_model(svm_poly_5, X_test, y_test)
+
+  # RBF SVM
+  print("\n-- RBF SVM --")
+  svm_rbf = SVR(kernel="rbf", C=1e4)
+  svm_rbf.fit(X_train, y_train)
+  evaluate_model(svm_rbf, X_test, y_test)
+
+  # Simulate making loans only to those who can pay back threshold times of original amount
+  regressed_payment = lin_reg.predict(X_test)
+  lend_using_target_only(regressed_payment, X_test, y_test, X_scaler, threshold=1.0)
+  

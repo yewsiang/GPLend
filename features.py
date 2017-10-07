@@ -90,6 +90,8 @@ def pub_rec_bankruptcies_fn(row):
   pub_rec = row[data_headers.get("pub_rec")]
   return pub_rec
 
+# Targets
+# They will be split into another array
 def loan_status_fn(row):
   loan_status = row[data_headers.get("loan_status")]
   one_hot_vec = one_hot_encoding(2, loan_status)
@@ -100,3 +102,69 @@ def total_pymnt_fn(row):
   #loan_amnt = row[data_headers.get("loan_amnt")]
   #percentage_of_loan_returned = total_pymnt / loan_amnt
   return total_pymnt #percentage_of_loan_returned
+
+# ===== Getter functions =====
+# General function
+def get_feature(idx, X, X_scaler=None):
+  if X_scaler is None:
+    return X[:,idx]
+  else:
+    return X_scaler.inverse_transform(X)[:,idx]
+
+# Specific functions
+def get_loan_amnt(X, X_scaler=None):
+  return get_feature(0, X, X_scaler)
+
+def get_int_rate(X, X_scaler=None):
+  return get_feature(1, X, X_scaler)
+
+def get_installment(X, X_scaler=None):
+  return get_feature(np.arange(2,4), X, X_scaler)
+
+def get_emp_length(X, X_scaler=None):
+  return get_feature(4, X, X_scaler)
+
+def get_home_ownership(X, X_scaler=None):
+  return get_feature(np.arange(5,11), X, X_scaler)
+
+def get_annual_inc(X, X_scaler=None):
+  return get_feature(11, X, X_scaler)
+
+def get_verification_status(X, X_scaler=None):
+  return get_feature(np.arange(11,14), X, X_scaler)
+
+def get_purpose(X, X_scaler=None):
+  return get_feature(np.arange(14,30), X, X_scaler)
+
+def get_dti(X, X_scaler=None):
+  return get_feature(30, X, X_scaler)
+
+def get_delinq_2yrs(X, X_scaler=None):
+  return get_feature(31, X, X_scaler)
+
+def get_inq_last_6mths(X, X_scaler=None):
+  return get_feature(32, X, X_scaler)
+
+def get_mths_since_last_delinq(X, X_scaler=None):
+  return get_feature(33, X, X_scaler)
+
+def get_mths_since_last_record(X, X_scaler=None):
+  return get_feature(34, X, X_scaler)
+
+def get_open_acc(X, X_scaler=None):
+  return get_feature(35, X, X_scaler)
+
+def get_pub_rec(X, X_scaler=None):
+  return get_feature(36, X, X_scaler)
+
+def get_total_acc(X, X_scaler=None):
+  return get_feature(37, X, X_scaler)
+
+def get_pub_rec_bankruptcies(X, X_scaler=None):
+  return get_feature(38, X, X_scaler)
+
+def get_loan_status(X, X_scaler=None):
+  pass
+
+def get_total_pymnt(X, X_scaler=None):
+  pass
