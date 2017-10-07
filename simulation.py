@@ -55,7 +55,6 @@ def choose_max_loans_given_funds(X_loans_sorted, y_loans_sorted, X_scaler, fund_
   for i in range(loan_amounts.shape[0]):
     loan_amount = loan_amounts[i]
     if fund_given >= loan_amount:
-      print("Approved %f" % loan_amount)
       loan_ids.append(i)
       fund_given -= loan_amount
   return X_loans_sorted[loan_ids,:], y_loans_sorted[loan_ids]
@@ -118,6 +117,21 @@ def choose_loans(model, X_loans, y_loans, X_scaler, y_scaler, fund_given, thresh
 
   return X_loaned, y_loaned
 
+def simulate_N_time_periods(model, X, y, X_scaler, y_scaler, threshold, num_periods=100, 
+                           fund_given=1e7, num_months=180, incoming_loans_per_time_period=50,
+                           optimize_for="profits", version="threshold_only", model_type="gp"):
+  performances = np.zeros((num_periods, num_months, 4))
+  for period in range(num_periods):
+    performance = simulate_time_period(model, X, y, X_scaler, y_scaler, threshold,
+                                      fund_given=fund_given, 
+                                      num_months=num_months, 
+                                      incoming_loans_per_time_period=incoming_loans_per_time_period,
+                                      optimize_for=optimize_for, 
+                                      version=version, 
+                                      model_type=model_type)
+    performances[period, :] = performance
+  return performances
+
 def simulate_time_period(model, X, y, X_scaler, y_scaler, threshold, 
                          fund_given=1e7, num_months=180, incoming_loans_per_time_period=50,
                          optimize_for="profits", version="threshold_only", model_type="gp"):
@@ -130,11 +144,14 @@ def simulate_time_period(model, X, y, X_scaler, y_scaler, threshold,
   Evaluation metrics such as profits made at the end of the entire time period will be collected.
   """
   N, D = X.shape
-  portfolio = Portfolio(fund_given)
+  portfolio = Portfolio(fund_given, num_months)
 
   for t in range(num_months):
     # Simulate interest flows current loans
     portfolio.update_period()
+
+    # Update portfolio
+    # TODO
 
     # Simulate loan applications coming in by sampling from data
     loan_application_ids = np.random.choice(N, incoming_loans_per_time_period, replace=False)
@@ -151,47 +168,67 @@ def simulate_time_period(model, X, y, X_scaler, y_scaler, threshold,
     # Update portfolio status
     portfolio.make_loans(X_loaned, y_loaned, X_scaler)
 
-    print("Portfolio funds: %f" % portfolio.get_funds())
+
+
+    #print("Portfolio funds: %f" % portfolio.get_funds())
 
   # Report performance
-  portfolio.report()
+  performance = portfolio.report()
+  return performance
     
 class Portfolio(object):
-  def __init__(self, initial_funds):
+  def __init__(self, initial_funds, time_period):
     self.initial_funds = initial_funds
-    self.funds = initial_funds
-    self.loans_given = 0
-    self.payments_rec = 0
+    self.time_period   = time_period
+    self.funds         = initial_funds
+    self.loans         = []
 
-    self.terms = 0
-    self.loans = []
+    # Keeping track of loans across different time periods.
+    # EG self.funds_across_time[t] is remaining funds at time t
+    self.terms                       = 0
+    self.loans_given_across_time     = []
+    self.funds_across_time           = []
+    self.payments_rec_across_time    = []
+    # Profits made the moment the loan was made (used for performance evaluation)
+    self.virtual_profits_across_time = [] 
 
   def make_loans(self, X_loans, y_loans, X_scaler):
     # No loans
     if X_loans.shape[0] == 0:
+      self.funds_across_time.append(self.funds)
+      self.loans_given_across_time.append(0)
+      self.virtual_profits_across_time.append([])
       return
 
     # Sanity check that we have not loaned more money than the fund than we have
     loan_amt = np.sum(get_loan_amnt(X_loans, X_scaler))
     assert(loan_amt <= self.get_funds())
     self.funds -= loan_amt
-    self.loans_given -= loan_amt
+    self.funds_across_time.append(self.funds)
+    self.loans_given_across_time.append(loan_amt)
 
     # Keep information about 1) installment, 2) terms remaining, 3) actual payment
     # of every loan
-    installments_and_etp = get_installment(X_loans, X_scaler)
-    installments = installments_and_etp[:,0]
+    loan_amts              = get_loan_amnt(X_loans, X_scaler)
+    installments_and_etp   = get_installment(X_loans, X_scaler)
+    installments           = installments_and_etp[:,0]
     expected_total_payment = installments_and_etp[:,1]
-    terms = expected_total_payment / installments
+    terms                  = expected_total_payment / installments
 
+    current_virtual_profits = []
     for i in range(X_loans.shape[0]):
-      installment = installments[i]
-      term = terms[i]
+      loan_amt      = loan_amts[i]
+      installment   = installments[i]
+      term          = terms[i]
       total_payment = y_loans[i]
+      # Profits the moment the loan has been made (used for performance evaluation)
+      current_virtual_profits.append(total_payment - loan_amt)
       self.loans.append([installment, term, total_payment])
+    self.virtual_profits_across_time.append(current_virtual_profits)
 
   def update_period(self):
     updated_loans = []
+    payments_rec_per_time_period = []
     for loan in self.loans:
       installment, term, total_payment = loan
 
@@ -201,7 +238,7 @@ class Portfolio(object):
       else:
         payment_for_period = installment
       self.funds += payment_for_period
-      self.payments_rec += payment_for_period
+      payments_rec_per_time_period.append(payment_for_period)
 
       # Reduce the remaining terms of loans
       term -= 1
@@ -216,15 +253,21 @@ class Portfolio(object):
 
     # Update loans
     self.loans = updated_loans
+    self.payments_rec_across_time.append(payments_rec_per_time_period)
 
   def get_funds(self):
     return self.funds
     
   def report(self):
-    # Let all loans eventually finish and calculate performance
-    
-    loans_given = self.loans_given
-    payments_rec = self.payments_rec
-
-    #print_loan_stats(num_loans, total_loans, loans_given, payments_rec, profits, profit_perc)    
-    pass
+    # Calculate performance for each time period.
+    # Dimension 0: Profits (Total Payment - Loan Amount)
+    # Dimension 1: Fund Remaining
+    # Dimension 2: Loan amount given in that time period
+    # Dimension 3: Payments received in that time period
+    performance = np.zeros((self.time_period, 4))
+    for t in range(self.time_period):
+      performance[t, 0] = np.sum(self.virtual_profits_across_time[t])
+      performance[t, 1] = self.funds_across_time[t]
+      performance[t, 2] = self.loans_given_across_time[t]
+      performance[t, 3] = np.sum(self.payments_rec_across_time[t])
+    return performance
