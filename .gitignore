@@ -1,0 +1,10 @@
+dataset/dummy_linh.csv
+
+auxil/*
+out/*
+.idea/*
+*.pyc
+*.xml
+*.iml
+*.orig
+*.gz

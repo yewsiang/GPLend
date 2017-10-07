@@ -12,9 +12,9 @@ def one_hot_encoding(total_classes, cls):
 
 # ========== FEATURE ENGINEERING FUNCTIONS ==========
 """
-Simply convert each row of raw CSV data into features
+Simply convert each row of raw CSV dataset into features
 that will be used for training.
-Given a data row, Each function here will generate a 
+Given a dataset row, Each function here will generate a 
 scalar/vector that will finally be appended together.
 """
 def loan_amnt_fn(row):
@@ -90,6 +90,8 @@ def pub_rec_bankruptcies_fn(row):
   pub_rec = row[data_headers.get("pub_rec")]
   return pub_rec
 
+# Targets
+# They will be split into another array
 def loan_status_fn(row):
   loan_status = row[data_headers.get("loan_status")]
   one_hot_vec = one_hot_encoding(2, loan_status)

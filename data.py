@@ -1,5 +1,5 @@
 
-# Only these columns will be kept from the raw CSV data
+# Only these columns will be kept from the raw CSV dataset
 # The values that are tagged to these headers are to index them into an array
 data_headers = {
     # Inputs
@@ -33,8 +33,8 @@ from preprocessing import *
 from collections import OrderedDict
 from sklearn.model_selection import train_test_split
 
-# Preprocessing functions for data from each of the headers
-# Convert the data from string to a usable format
+# Preprocessing functions for dataset from each of the headers
+# Convert the dataset from string to a usable format
 preproc_fn = {
     "loan_amnt":              loan_amnt_prefn,
     "term":                   term_prefn,
@@ -83,7 +83,7 @@ feature_fn = OrderedDict([
 
 def get_preprocessed_data(filename, cols):
   # Load the relevant attributes and convert them into a usable dtype
-  with open(filename) as csvfile:
+  with open(filename, encoding='utf-8') as csvfile:
     data = []
     N_data = len(data_headers)
     reader = csv.reader(csvfile, delimiter=",")
@@ -99,7 +99,7 @@ def get_preprocessed_data(filename, cols):
         headers = row
         continue
       
-      # Get data from the remaining rows
+      # Get dataset from the remaining rows
       data_line = [0] * N_data
       for j, item in enumerate(row):
         # Ignore features that are not used

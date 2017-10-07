@@ -1,10 +1,10 @@
 
 # ============= PREPROCESSING FUNCTIONS =============
 """
-Simply convert string format of the raw CSV data into a
+Simply convert string format of the raw CSV dataset into a
 usable format. Further processing will have to be done 
 to convert these values into features for training.
-EG. Categorical data into integers
+EG. Categorical dataset into integers
 EG. Real values into floats
 """
 def loan_amnt_prefn(data_str):
@@ -13,12 +13,12 @@ def loan_amnt_prefn(data_str):
 def term_prefn(data_str):
   num_months, string = data_str.split()
   if string != "months":
-    raise Exception("Unexpected data string value: %s" % data_str)
+    raise Exception("Unexpected dataset string value: %s" % data_str)
   return int(num_months)
 
 def int_rate_prefn(data_str):
   if data_str[-1] != "%":
-    raise Exception("Unexpected data string value: %s" % data_str)
+    raise Exception("Unexpected dataset string value: %s" % data_str)
   return float(data_str[:-1])
 
 def installment_prefn(data_str):
@@ -36,7 +36,7 @@ def emp_length_prefn(data_str):
   elif data_str[-5:] == "years":
     val = float(data_str[0])
   else:
-    raise Exception("Unexpected data string value: %s" % data_str)
+    raise Exception("Unexpected dataset string value: %s" % data_str)
   return val
 
 def home_ownership_prefn(data_str):
@@ -52,7 +52,7 @@ def home_ownership_prefn(data_str):
   elif data_str == "OTHER":
     val = 4
   else:
-    raise Exception("Unexpected data string value: %s" % data_str)
+    raise Exception("Unexpected dataset string value: %s" % data_str)
   return val
 
 def annual_inc_prefn(data_str):
@@ -70,7 +70,7 @@ def verification_status_prefn(data_str):
   elif data_str == "Not Verified":
     val = 2
   else:
-    raise Exception("Unexpected data string value: %s" % data_str)
+    raise Exception("Unexpected dataset string value: %s" % data_str)
   return val
 
 def purpose_prefn(data_str):
@@ -106,7 +106,7 @@ def purpose_prefn(data_str):
   elif data_str == "other":
     val = 14
   else:
-    raise Exception("Unexpected data string value: %s" % data_str)
+    raise Exception("Unexpected dataset string value: %s" % data_str)
   return val
 
 def dti_prefn(data_str):
@@ -171,7 +171,7 @@ def loan_status_prefn(data_str):
   elif data_str == "Does not meet the credit policy. Status:Charged Off":
     val = 1
   else:
-    raise Exception("Unexpected data string value: %s" % data_str)
+    raise Exception("Unexpected dataset string value: %s" % data_str)
   return val
 
 def total_pymnt_prefn(data_str):
