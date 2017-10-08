@@ -2,6 +2,8 @@
 import numpy as np
 from features import *
 
+PORTFOLIO_PERFORMANCE_DIMENSIONS = 5
+
 def print_loan_stats(num_loans, total_loans, loans_given, payments_rec, profits, profit_perc):
   print("Loans approved:    %d/%d" % (num_loans, total_loans))
   print("Loans given:       $ %.1f" % loans_given)
@@ -60,7 +62,8 @@ def choose_max_loans_given_funds(X_loans_sorted, y_loans_sorted, X_scaler, fund_
   return X_loans_sorted[loan_ids,:], y_loans_sorted[loan_ids]
 
 def choose_loans(model, X_loans, y_loans, X_scaler, y_scaler, fund_given, threshold, 
-                 optimize_for="profits", version="threshold_only", model_type="gp"):
+                 conf_quantile=(30,100), optimize_for="profits", 
+                 version="threshold_only", model_type="gp"):
   """
   Choose the loans to be made using different algorithms and returns the ids.
   Different targets might be optimized for (EG. profits, profit_percentage).
@@ -77,9 +80,11 @@ def choose_loans(model, X_loans, y_loans, X_scaler, y_scaler, fund_given, thresh
   X_loaned, y_loaned = None, None
   # Evaluate the applicants using the model
   if model_type == "gp":
-    y_hat, conf = model.predict(X_loans)
+    y_hat, conf       = model.predict(X_loans)
+    regressed_payment = y_scaler.inverse_transform(y_hat).reshape(-1)
+    
   elif model_type == "others":
-    y_hat = model.predict(X_loans)
+    regressed_payment = model.predict(X_loans)
 
   # TODO:
   # Optimize_for
@@ -89,7 +94,6 @@ def choose_loans(model, X_loans, y_loans, X_scaler, y_scaler, fund_given, thresh
     X_loaned, y_loaned = X_loans, y_loans
   
   elif version == "threshold_only":
-    regressed_payment = y_scaler.inverse_transform(y_hat).reshape(-1)
     loan_amount = get_loan_amnt(X_loans, X_scaler)
 
     # Sort loans from the predicted best to the worst
@@ -102,10 +106,30 @@ def choose_loans(model, X_loans, y_loans, X_scaler, y_scaler, fund_given, thresh
 
     # Keep only if it is above threshold
     is_ratio_above_threshold = desc_payment_to_loan_ratio > threshold
-    X_loaned = X_loans[is_ratio_above_threshold,:]
-    y_loaned = y_loans[is_ratio_above_threshold]
+    X_loaned = X_loaned[is_ratio_above_threshold,:]
+    y_loaned = y_loaned[is_ratio_above_threshold]
   
-  elif version == "variance":
+  elif version == "threshold_and_variance":
+    loan_amount = get_loan_amnt(X_loans, X_scaler)
+    lower_q, upper_q  = model.predict_quantiles(X_loans, quantiles=conf_quantile)
+    lower_q = y_scaler.inverse_transform(lower_q).reshape(-1)
+
+    # Instead of using regressed_payment (which represents the mean prediction), use the lower quantile
+    # to predict with a confidence the payments that the loanee will make.
+    # Sort loans from the predicted best to the worst
+    payment_to_loan_ratio = lower_q / loan_amount
+    desc_payment_to_loan_ratio_id = np.argsort(-payment_to_loan_ratio)
+
+    desc_payment_to_loan_ratio = payment_to_loan_ratio[desc_payment_to_loan_ratio_id]
+    X_loaned = X_loans[desc_payment_to_loan_ratio_id,:]
+    y_loaned = y_loans[desc_payment_to_loan_ratio_id]
+
+    # Keep only if it is above threshold
+    is_ratio_above_threshold = desc_payment_to_loan_ratio > threshold
+    X_loaned = X_loaned[is_ratio_above_threshold,:]
+    y_loaned = y_loaned[is_ratio_above_threshold]
+
+  elif version == "threshold_and_sharpe_ratio":
     pass
 
   # Make sure there is enough money to make these loans
@@ -119,22 +143,27 @@ def choose_loans(model, X_loans, y_loans, X_scaler, y_scaler, fund_given, thresh
 
 def simulate_N_time_periods(model, X, y, X_scaler, y_scaler, threshold, num_periods=100, 
                            fund_given=1e7, num_months=180, incoming_loans_per_time_period=50,
-                           optimize_for="profits", version="threshold_only", model_type="gp"):
-  performances = np.zeros((num_periods, num_months, 4))
+                           conf_quantile=(30,100), optimize_for="profits", 
+                           version="threshold_only", model_type="gp", seed=0):
+  np.random.seed(seed)
+  performances = np.zeros((num_periods, num_months, PORTFOLIO_PERFORMANCE_DIMENSIONS))
   for period in range(num_periods):
+    if period % 10 == 0: print("Simulating period %d..." % period)
     performance = simulate_time_period(model, X, y, X_scaler, y_scaler, threshold,
                                       fund_given=fund_given, 
                                       num_months=num_months, 
                                       incoming_loans_per_time_period=incoming_loans_per_time_period,
+                                      conf_quantile=conf_quantile,
                                       optimize_for=optimize_for, 
                                       version=version, 
                                       model_type=model_type)
-    performances[period, :] = performance
+    performances[period,:] = performance
   return performances
 
 def simulate_time_period(model, X, y, X_scaler, y_scaler, threshold, 
                          fund_given=1e7, num_months=180, incoming_loans_per_time_period=50,
-                         optimize_for="profits", version="threshold_only", model_type="gp"):
+                         conf_quantile=(30,100), optimize_for="profits", 
+                         version="threshold_only", model_type="gp"):
   """
   Simulate having a portfolio with FUND_GIVEN ($) and NUM_MONTHS (months) to make loans,
   where there will be new INCOMING_LOANS_PER_TIME_PERIOD (loans/month) that is available every month.
@@ -155,22 +184,19 @@ def simulate_time_period(model, X, y, X_scaler, y_scaler, threshold,
 
     # Simulate loan applications coming in by sampling from data
     loan_application_ids = np.random.choice(N, incoming_loans_per_time_period, replace=False)
-    X_loan_app = X[loan_application_ids, :]
+    X_loan_app = X[loan_application_ids,:]
     y_loan_app = y[loan_application_ids] # Actual outcome of loan (which we wouldn't know)
 
     # Choose the loans to be made using different optim
     X_loaned, y_loaned = choose_loans(model, X_loan_app, y_loan_app, X_scaler, y_scaler, 
                                       portfolio.get_funds(), threshold, 
+                                      conf_quantile=conf_quantile,
                                       optimize_for=optimize_for,
                                       version=version,
                                       model_type=model_type)
 
     # Update portfolio status
     portfolio.make_loans(X_loaned, y_loaned, X_scaler)
-
-
-
-    #print("Portfolio funds: %f" % portfolio.get_funds())
 
   # Report performance
   performance = portfolio.report()
@@ -264,10 +290,15 @@ class Portfolio(object):
     # Dimension 1: Fund Remaining
     # Dimension 2: Loan amount given in that time period
     # Dimension 3: Payments received in that time period
-    performance = np.zeros((self.time_period, 4))
+    # Dimension 4: Profit Percentage
+    performance = np.zeros((self.time_period, PORTFOLIO_PERFORMANCE_DIMENSIONS))
     for t in range(self.time_period):
       performance[t, 0] = np.sum(self.virtual_profits_across_time[t])
       performance[t, 1] = self.funds_across_time[t]
       performance[t, 2] = self.loans_given_across_time[t]
       performance[t, 3] = np.sum(self.payments_rec_across_time[t])
+      if self.loans_given_across_time[t] != 0:
+        performance[t, 4] = performance[t, 0] / self.loans_given_across_time[t]
+      else:
+        performance[t, 4] = 0
     return performance
