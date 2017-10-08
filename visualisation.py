@@ -65,6 +65,7 @@ def plot_portfolio_performance(performance):
     # Draw plots
     t = np.arange(num_months)
     fig = plt.figure(figsize=(25,12))
+
     # Represent in thousands
     mean[0:2,:] = mean[0:2,:] / 1000
     std[0:2,:]  = std[0:2,:] / 1000
@@ -93,6 +94,27 @@ def add_suplot_with_mean_and_std(fig, subplot_info, t, mean, std, line_col='blac
     if ymin and ymax:
         sub.set_ylim([ymin, ymax])
     
+    # Commented out first
+    """
+    ymin = np.min(mean[0]-std[0])
+    ymax = np.max(mean[0]+std[0])
+
+    for i in range(1,4):
+        model_min = np.min(mean[i]-std[i])
+        model_max = np.max(mean[i]+std[i])
+        if(model_min < ymin):
+            ymin = model_min
+        if(model_max > ymax):
+            ymax = model_max
+
+    #give some buffer space
+    ymax = ymax + 100
+    ymin = ymin - 100
+    """
+
+    plt.tight_layout()
+    plt.show()
+
 #plot on the same axis
 def plot_portfolio_model_compare(t, mean, std):
     """
