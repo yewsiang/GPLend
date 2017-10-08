@@ -19,10 +19,6 @@ def get_predictions(gp_model, X_test, y_scaler=None):
 def test_kernel(kernel, X_train, y_train, X_val, y_val,
                 X_test, y_test, X_scaler, y_scaler, optimize_for='profits'):
     gp_model = get_optimized_model(X_train, y_train, kernel)
-    print("Mean: %s" % gp_model.mean_function)
-    print("Kernel: %s" % gp_model.kern)
-
-    # Use X_val (validation set) to optimize threshold
 
     # Optimize threshold for profits / profit_percentage
     threshold = gp_optimize_threshold(gp_model, X_val, y_val, X_scaler, y_scaler, optimize_for=optimize_for)
