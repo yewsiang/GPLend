@@ -1,4 +1,5 @@
 import numpy as np
+from matplotlib import pyplot as pp
 
 from kernels import get_optimized_model, get_predictions
 from optimization import gp_optimize_threshold
@@ -19,12 +20,12 @@ def partition_by_relevance(test_point, top_size, X_train, kernel):
     :return (Top k relevant points, Rest)
     """
     # Covariance matrix K(X_train, test_point)
-    cov = kernel.K(X_train, test_point)
+    cov = -kernel.K(X_train, test_point)
 
     # Partition into top k and the rest
     partitions = cov.reshape(-1).argpartition(top_size)
-    top_ind = partitions[-top_size:]
-    rest_ind = partitions[:-top_size]
+    top_ind = partitions[:top_size]
+    rest_ind = partitions[top_size:]
 
     return top_ind, rest_ind
 
