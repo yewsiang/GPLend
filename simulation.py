@@ -53,7 +53,8 @@ def choose_max_loans_given_funds(X_loans_sorted, y_loans_sorted, X_scaler, fund_
     return np.array([]), np.array([])
 
   loan_ids = []
-  loan_amounts = get_loan_amnt(X_loans_sorted, X_scaler)
+  # loan_amounts = get_loan_amnt(X_loans_sorted, X_scaler)
+  loan_amounts = X_loans_sorted
   for i in range(loan_amounts.shape[0]):
     loan_amount = loan_amounts[i]
     if fund_given >= loan_amount:
@@ -61,7 +62,7 @@ def choose_max_loans_given_funds(X_loans_sorted, y_loans_sorted, X_scaler, fund_
       fund_given -= loan_amount
   return X_loans_sorted[loan_ids,:], y_loans_sorted[loan_ids]
 
-def choose_loans(model, X_loans, y_loans, X_scaler, y_scaler, fund_given, threshold, 
+def choose_loans(model, X_loans, y_loans, X_scaler, y_scaler, fund_given, threshold,loan_amount, 
                  conf_quantile=(30,100), optimize_for="profits", 
                  version="threshold_only", model_type="gp"):
   """
@@ -94,23 +95,23 @@ def choose_loans(model, X_loans, y_loans, X_scaler, y_scaler, fund_given, thresh
     X_loaned, y_loaned = X_loans, y_loans
   
   elif version == "threshold_only":
-    loan_amount = get_loan_amnt(X_loans, X_scaler)
+    # loan_amount = get_loan_amnt(X_loans, X_scaler)
 
     # Sort loans from the predicted best to the worst
     payment_to_loan_ratio = regressed_payment / loan_amount
     desc_payment_to_loan_ratio_id = np.argsort(-payment_to_loan_ratio)
 
     desc_payment_to_loan_ratio = payment_to_loan_ratio[desc_payment_to_loan_ratio_id]
-    X_loaned = X_loans[desc_payment_to_loan_ratio_id,:]
+    X_loaned = loan_amount[desc_payment_to_loan_ratio_id]
     y_loaned = y_loans[desc_payment_to_loan_ratio_id]
 
     # Keep only if it is above threshold
     is_ratio_above_threshold = desc_payment_to_loan_ratio > threshold
-    X_loaned = X_loaned[is_ratio_above_threshold,:]
+    X_loaned = X_loaned[is_ratio_above_threshold]
     y_loaned = y_loaned[is_ratio_above_threshold]
   
   elif version == "threshold_and_variance":
-    loan_amount = get_loan_amnt(X_loans, X_scaler)
+    # loan_amount = get_loan_amnt(X_loans, X_scaler)
     lower_q, upper_q  = model.predict_quantiles(X_loans, quantiles=conf_quantile)
     lower_q = y_scaler.inverse_transform(lower_q).reshape(-1)
 
@@ -121,27 +122,27 @@ def choose_loans(model, X_loans, y_loans, X_scaler, y_scaler, fund_given, thresh
     desc_payment_to_loan_ratio_id = np.argsort(-payment_to_loan_ratio)
 
     desc_payment_to_loan_ratio = payment_to_loan_ratio[desc_payment_to_loan_ratio_id]
-    X_loaned = X_loans[desc_payment_to_loan_ratio_id,:]
+    X_loaned = X_loans[desc_payment_to_loan_ratio_id]
     y_loaned = y_loans[desc_payment_to_loan_ratio_id]
 
     # Keep only if it is above threshold
     is_ratio_above_threshold = desc_payment_to_loan_ratio > threshold
-    X_loaned = X_loaned[is_ratio_above_threshold,:]
+    X_loaned = X_loaned[is_ratio_above_threshold]
     y_loaned = y_loaned[is_ratio_above_threshold]
 
   elif version == "threshold_and_sharpe_ratio":
     pass
 
   # Make sure there is enough money to make these loans
-  X_loaned, y_loaned = choose_max_loans_given_funds(X_loaned, y_loaned, X_scaler, fund_given)
+  X_loaned, y_loaned = choose_max_loans_given_funds(X_loaned, y_loaned, fund_given)
 
   # Sanity check that we have not loaned more money than the fund that we have
   if X_loaned.shape[0] != 0:
-    assert(np.sum(get_loan_amnt(X_loaned, X_scaler)) <= fund_given)
+    assert(np.sum(loan_amount) <= fund_given)
 
   return X_loaned, y_loaned
 
-def simulate_N_time_periods(model, X, y, X_scaler, y_scaler, threshold, num_periods=100, 
+def simulate_N_time_periods(model, X, y, X_scaler, y_scaler, threshold, sim_info, num_periods=100, 
                            fund_given=1e7, num_months=180, incoming_loans_per_time_period=50,
                            conf_quantile=(30,100), optimize_for="profits", 
                            version="threshold_only", model_type="gp", seed=0):
@@ -149,7 +150,7 @@ def simulate_N_time_periods(model, X, y, X_scaler, y_scaler, threshold, num_peri
   performances = np.zeros((num_periods, num_months, PORTFOLIO_PERFORMANCE_DIMENSIONS))
   for period in range(num_periods):
     if period % 10 == 0: print("Simulating period %d..." % period)
-    performance = simulate_time_period(model, X, y, X_scaler, y_scaler, threshold,
+    performance = simulate_time_period(model, X, y, X_scaler, y_scaler, threshold, sim_info
                                       fund_given=fund_given, 
                                       num_months=num_months, 
                                       incoming_loans_per_time_period=incoming_loans_per_time_period,
@@ -160,7 +161,7 @@ def simulate_N_time_periods(model, X, y, X_scaler, y_scaler, threshold, num_peri
     performances[period,:] = performance
   return performances
 
-def simulate_time_period(model, X, y, X_scaler, y_scaler, threshold, 
+def simulate_time_period(model, X, y, X_scaler, y_scaler, threshold, sim_info, 
                          fund_given=1e7, num_months=180, incoming_loans_per_time_period=50,
                          conf_quantile=(30,100), optimize_for="profits", 
                          version="threshold_only", model_type="gp"):
@@ -186,22 +187,31 @@ def simulate_time_period(model, X, y, X_scaler, y_scaler, threshold,
     loan_application_ids = np.random.choice(N, incoming_loans_per_time_period, replace=False)
     X_loan_app = X[loan_application_ids,:]
     y_loan_app = y[loan_application_ids] # Actual outcome of loan (which we wouldn't know)
+    loan_amount = sim_info[loan_application_ids,0] 
 
     # Choose the loans to be made using different optim
     X_loaned, y_loaned = choose_loans(model, X_loan_app, y_loan_app, X_scaler, y_scaler, 
-                                      portfolio.get_funds(), threshold, 
+                                      portfolio.get_funds(), threshold, loan_amount 
                                       conf_quantile=conf_quantile,
                                       optimize_for=optimize_for,
                                       version=version,
                                       model_type=model_type)
 
     # Update portfolio status
-    portfolio.make_loans(X_loaned, y_loaned, X_scaler)
+    portfolio.make_loans(X_loaned, y_loaned, X_scaler, sim_info)
 
   # Report performance
   performance = portfolio.report()
   return performance
     
+def construct_sim_info(X,y):
+    # make sure the data is not the scaled version
+    loan_amount = get_loan_amnt(X)
+    installments_and_etp = get_installment(X)
+    actual_payment = y
+    return np.hstack((loan_amount, installments_and_etp, actual_payment))
+
+
 class Portfolio(object):
   def __init__(self, initial_funds, time_period):
     self.initial_funds = initial_funds
@@ -227,7 +237,8 @@ class Portfolio(object):
       return
 
     # Sanity check that we have not loaned more money than the fund than we have
-    loan_amt = np.sum(get_loan_amnt(X_loans, X_scaler))
+    # loan_amt = np.sum(get_loan_amnt(X_loans, X_scaler))
+    loan_amt = np.sum(sim_info[:,0])
     assert(loan_amt <= self.get_funds())
     self.funds -= loan_amt
     self.funds_across_time.append(self.funds)
@@ -235,12 +246,13 @@ class Portfolio(object):
 
     # Keep information about 1) installment, 2) terms remaining, 3) actual payment
     # of every loan
-    loan_amts              = get_loan_amnt(X_loans, X_scaler)
-    installments_and_etp   = get_installment(X_loans, X_scaler)
-    installments           = installments_and_etp[:,0]
-    expected_total_payment = installments_and_etp[:,1]
-    terms                  = expected_total_payment / installments
+    # loan_amts              = get_loan_amnt(X_loans, X_scaler)
+    # installments_and_etp   = get_installment(X_loans, X_scaler)
+    # installments           = installments_and_etp[:,0]
+    # expected_total_payment = installments_and_etp[:,1]
+    # terms                  = expected_total_payment / installments
 
+    
     current_virtual_profits = []
     for i in range(X_loans.shape[0]):
       loan_amt      = loan_amts[i]
