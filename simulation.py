@@ -43,7 +43,7 @@ def lend_using_target_only(regressed_payment, X, y, X_scaler, threshold=1.0, ver
 
   return profits
 
-def choose_max_loans_given_funds(X_loans_sorted, y_loans_sorted, X_scaler, fund_given):
+def choose_max_loans_given_funds(X_loans_sorted, y_loans_sorted, fund_given):
   """
   Given a list of loans, already sorted by in descending order of how good they are,
   make as many loans as possible greedily without loan amount exceeding FUND_GIVEN.
@@ -60,7 +60,7 @@ def choose_max_loans_given_funds(X_loans_sorted, y_loans_sorted, X_scaler, fund_
     if fund_given >= loan_amount:
       loan_ids.append(i)
       fund_given -= loan_amount
-  return X_loans_sorted[loan_ids,:], y_loans_sorted[loan_ids]
+  return X_loans_sorted[loan_ids], y_loans_sorted[loan_ids]
 
 def choose_loans(model, X_loans, y_loans, X_scaler, y_scaler, fund_given, threshold,loan_amount, 
                  conf_quantile=(30,100), optimize_for="profits", 
@@ -122,7 +122,7 @@ def choose_loans(model, X_loans, y_loans, X_scaler, y_scaler, fund_given, thresh
     desc_payment_to_loan_ratio_id = np.argsort(-payment_to_loan_ratio)
 
     desc_payment_to_loan_ratio = payment_to_loan_ratio[desc_payment_to_loan_ratio_id]
-    X_loaned = X_loans[desc_payment_to_loan_ratio_id]
+    X_loaned = loan_amount[desc_payment_to_loan_ratio_id]
     y_loaned = y_loans[desc_payment_to_loan_ratio_id]
 
     # Keep only if it is above threshold
@@ -150,7 +150,7 @@ def simulate_N_time_periods(model, X, y, X_scaler, y_scaler, threshold, sim_info
   performances = np.zeros((num_periods, num_months, PORTFOLIO_PERFORMANCE_DIMENSIONS))
   for period in range(num_periods):
     if period % 10 == 0: print("Simulating period %d..." % period)
-    performance = simulate_time_period(model, X, y, X_scaler, y_scaler, threshold, sim_info
+    performance = simulate_time_period(model, X, y, X_scaler, y_scaler, threshold, sim_info,
                                       fund_given=fund_given, 
                                       num_months=num_months, 
                                       incoming_loans_per_time_period=incoming_loans_per_time_period,
@@ -191,7 +191,7 @@ def simulate_time_period(model, X, y, X_scaler, y_scaler, threshold, sim_info,
 
     # Choose the loans to be made using different optim
     X_loaned, y_loaned = choose_loans(model, X_loan_app, y_loan_app, X_scaler, y_scaler, 
-                                      portfolio.get_funds(), threshold, loan_amount 
+                                      portfolio.get_funds(), threshold, loan_amount, 
                                       conf_quantile=conf_quantile,
                                       optimize_for=optimize_for,
                                       version=version,
@@ -206,11 +206,14 @@ def simulate_time_period(model, X, y, X_scaler, y_scaler, threshold, sim_info,
     
 def construct_sim_info(X,y):
     # make sure the data is not the scaled version
-    loan_amount = get_loan_amnt(X)
+    loan_amount = get_loan_amnt(X).reshape(-1,1)
     installments_and_etp = get_installment(X)
-    actual_payment = y
-    return np.hstack((loan_amount, installments_and_etp, actual_payment))
-
+    installment = installments_and_etp[:,0].reshape(-1,1)
+    etp = installments_and_etp[:,1].reshape(-1,1)
+    actual_payment = y.reshape(-1,1)
+    sim_info = np.hstack((loan_amount, installment, etp, actual_payment))
+    print(sim_info.shape)
+    return sim_info
 
 class Portfolio(object):
   def __init__(self, initial_funds, time_period):
@@ -228,7 +231,7 @@ class Portfolio(object):
     # Profits made the moment the loan was made (used for performance evaluation)
     self.virtual_profits_across_time = [] 
 
-  def make_loans(self, X_loans, y_loans, X_scaler):
+  def make_loans(self, X_loans, y_loans, X_scaler, sim_info):
     # No loans
     if X_loans.shape[0] == 0:
       self.funds_across_time.append(self.funds)
@@ -252,7 +255,11 @@ class Portfolio(object):
     # expected_total_payment = installments_and_etp[:,1]
     # terms                  = expected_total_payment / installments
 
-    
+    loan_amts = sim_info[:,0]
+    installments= sim_info[:,1]
+    etp = sim_info[:,2]
+    terms = etp / installments
+   
     current_virtual_profits = []
     for i in range(X_loans.shape[0]):
       loan_amt      = loan_amts[i]
