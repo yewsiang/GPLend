@@ -8,6 +8,7 @@
 \usepackage{amsmath}
 \usepackage{amsfonts}
 \usepackage{multirow}
+\usepackage{amsthm}
 \frenchspacing
 \setlength{\pdfpagewidth}{8.5in}
 \setlength{\pdfpageheight}{11in}
@@ -56,21 +57,30 @@ National University of Singapore \\
 CS4246 Group 06 \AND
 \normalsize\normalfont\textbf{Gao Bo, A0} \\ 
 \normalsize\normalfont\textbf{Jack Shee, A0} \\
-\normalsize\normalfont\textbf{Mikaela Angelina Chan Uy, A0} \And
+\normalsize\normalfont\textbf{Mikaela Angelina Chan Uy, A0174439W} \And
 \normalsize\normalfont\textbf{Tang Yew Siang, A0139817U} \\
 \normalsize\normalfont\textbf{Tran Hoang Bao Linh, A0112184R}
 }
 
 \maketitle
 \begin{abstract}
-Hello
+The loaning process involves an officer in a lending company and a loaner needing money. The goal of a lending officer is to determine the risks involved in accepting a loan and charge an interest rate accordingly while the goal of a loaner is to be able to successfully apply for a loan with a fair interest rate. Both these goals can be achieved with a tool that can predict a loaner's ability to pay back the loan given a certain interest rate; this is a loaner's \textit{credit score}. This project aims to leverage on the strengths of Gaussian process in order to design a model that can predict loaners' credit scores in order to loan approvals fairer.
 \end{abstract}
 
 \section{Introduction}
-\noindent Hello
+\noindent 
+At any point in our lives, we might be faced in crucial situations where we need to apply for loans. In times like these, we turn to lending companies. As a loan officer in a lending company, one must assess the loaner's background in order to determine the his/her eligibility to apply for a loan and the interest rate that comes with it. This assessment takes many factors into consideration, such as financial history, employment background, assets owned among many others.The goal of the loan officer is to determine the risks involved in accepting the loan (i.e. the loaner's credit score), which takes into consideration ability of the loaner to eventually pay back the loan or the chance of it defaulting, and make a decision and charge an interest rate accordingly. As a loaner, one's goal is to successfully apply for a loan with a fair interest rate. Hence, one must also have a rough idea of his/her credit score in order to have an approximate interest rate to expect. 
+
+This project aims to utilize the strengths of Gaussian processes to build a tool for both loan officers and loaners that makes loan approvals fairer and alleviate human biases and prejudices in decision making.
 
 \section{Motivating Application}
-Hello
+The motivation behind this application is to not only be able to aid loan officers in decision making, but also to help loaner's get a fair deal when applying for a loan. With our application, we decrease the risk of lending companies by having a more accurate model in predicting the chance of the loan defaulting. Furthermore, using the same model, a loaner can also predict his/her ability to pay back the loan given an interest rate. Hence, he/she can have an estimate of a fair interest rate to expect. Thus, our application benefits both sides of the lending process.
+
+Our goal is to exploit the predictive mean and variance of the Gaussian Processes to have a better prediction on a loaner's credit score, which is the fraction of the total expected payment the loaner is predicted to be able to pay back. By utilizing a large database of loan histories, we are able to extract relevant features as inputs in order to learn a GP model that can predict a loaner's credit score. (These features will be further discussed in the sections below.) 
+
+Unlike other learning models such as \textbf{X, Y, Z (whatever we used as comparisons)} that only provide a predictive mean, we want to leverage on the predicted uncertainty of the GP model in order to come up with a better prediction. GP models are particularly better suited for our application compared to traditional regression models since it would not only give us a predicted credit score (predicted mean), but it will also provide us with a range of uncertainty (predicted variance) that comes with it. For example, given two loaners A and B with predicted variances $\sigma_{A}^2$ and $\sigma_{B}^2$ and equal predicted means, if $\sigma_{A}^2>\sigma_{B}^2$, then loaner B would have a higher credit score compared to loaner A since a lower variance would mean lower risk.
+
+Furthermore, ethical implications for the application of loan-making based on Gaussian Processes also needs to be considered. Inherently, our current system of lending is still very manual with human interferances. Our human biases and prejudices lead to discrimination and inequality. This is because whenever a person needs a loan, they have to first speak with a loan advisor and then fill out a form containing information which is ultimately judged by another person who albeit unconsciously but nevertheless can make a biased assessment of the person’s eligibility for the loan. The digitisation of loan making could potentially make obtaining loans fairer for all. However, there is also a concern that doing so may in fact inadvertently reinforce human prejudices. This is when the quality and quantity of data used to train the model becomes critical to building fairness into algorithm. With our current GP model, we are aware that that our model could in fact lead us to make decisions that may be discriminatory. However, as there currently is no other model regarding making loan assessments, we think that with further model training on larger data, our application can be improved to make loan approvals fairer.  
 
 \section{Technical Approach}
 Gaussian process:
