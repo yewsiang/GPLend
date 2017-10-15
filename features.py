@@ -119,7 +119,10 @@ def get_int_rate(X, X_scaler=None):
   return get_feature(1, X, X_scaler)
 
 def get_installment(X, X_scaler=None):
-  return get_feature(np.arange(2,4), X, X_scaler)
+  return get_feature(2, X, X_scaler)
+
+def get_expected_total_payment(X, X_scaler=None):
+  return get_feature(3, X, X_scaler)
 
 def get_emp_length(X, X_scaler=None):
   return get_feature(4, X, X_scaler)

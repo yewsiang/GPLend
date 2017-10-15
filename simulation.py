@@ -93,11 +93,15 @@ def choose_loans(model, X_loans, y_loans, X_scaler, y_scaler, fund_given, thresh
   if version == "loan_all":
     X_loaned, y_loaned = X_loans, y_loans
   
-  elif version == "threshold_only":
-    loan_amount = get_loan_amnt(X_loans, X_scaler)
-
+  elif version == "expected_total_payment" or version == "loan_amount":
+    
     # Sort loans from the predicted best to the worst
-    payment_to_loan_ratio = regressed_payment / loan_amount
+    if version == "loan_amount":
+      loan_amount = get_loan_amnt(X_loans, X_scaler)
+      payment_to_loan_ratio = regressed_payment / loan_amount
+    elif version == "expected_total_payment":
+      expected_total_payment = get_expected_total_payment(X_loans, X_scaler)
+      payment_to_loan_ratio = regressed_payment / expected_total_payment
     desc_payment_to_loan_ratio_id = np.argsort(-payment_to_loan_ratio)
 
     desc_payment_to_loan_ratio = payment_to_loan_ratio[desc_payment_to_loan_ratio_id]
@@ -107,9 +111,29 @@ def choose_loans(model, X_loans, y_loans, X_scaler, y_scaler, fund_given, thresh
     # Keep only if it is above threshold
     is_ratio_above_threshold = desc_payment_to_loan_ratio > threshold
     X_loaned = X_loaned[is_ratio_above_threshold,:]
-    y_loaned = y_loaned[is_ratio_above_threshold]
+    y_loaned = y_loaned[is_ratio_above_threshold]   
   
-  elif version == "threshold_and_variance":
+  elif version == "expected_total_payment_and_variance":
+    expected_total_payment = get_expected_total_payment(X_loans, X_scaler)
+    lower_q, upper_q  = model.predict_quantiles(X_loans, quantiles=conf_quantile)
+    lower_q = y_scaler.inverse_transform(lower_q).reshape(-1)
+
+    # Instead of using regressed_payment (which represents the mean prediction), use the lower quantile
+    # to predict with a confidence the payments that the loanee will make.
+    # Sort loans from the predicted best to the worst
+    payment_to_loan_ratio = lower_q / expected_total_payment
+    desc_payment_to_loan_ratio_id = np.argsort(-payment_to_loan_ratio)
+
+    desc_payment_to_loan_ratio = payment_to_loan_ratio[desc_payment_to_loan_ratio_id]
+    X_loaned = X_loans[desc_payment_to_loan_ratio_id,:]
+    y_loaned = y_loans[desc_payment_to_loan_ratio_id]
+
+    # Keep only if it is above lower bound
+    is_confident_enough = desc_payment_to_loan_ratio > 1.
+    X_loaned = X_loaned[is_confident_enough,:]
+    y_loaned = y_loaned[is_confident_enough]
+
+  elif version == "loan_amount_and_variance":
     loan_amount = get_loan_amnt(X_loans, X_scaler)
     lower_q, upper_q  = model.predict_quantiles(X_loans, quantiles=conf_quantile)
     lower_q = y_scaler.inverse_transform(lower_q).reshape(-1)
@@ -125,12 +149,13 @@ def choose_loans(model, X_loans, y_loans, X_scaler, y_scaler, fund_given, thresh
     y_loaned = y_loans[desc_payment_to_loan_ratio_id]
 
     # Keep only if it is above threshold
-    is_ratio_above_threshold = desc_payment_to_loan_ratio > threshold
+    is_ratio_above_threshold = desc_payment_to_loan_ratio > 1.
     X_loaned = X_loaned[is_ratio_above_threshold,:]
     y_loaned = y_loaned[is_ratio_above_threshold]
 
-  elif version == "threshold_and_sharpe_ratio":
-    pass
+  else:
+    raise Exception("Unknown version specified: %s" % version)
+
 
   # Make sure there is enough money to make these loans
   X_loaned, y_loaned = choose_max_loans_given_funds(X_loaned, y_loaned, X_scaler, fund_given)
@@ -236,9 +261,8 @@ class Portfolio(object):
     # Keep information about 1) installment, 2) terms remaining, 3) actual payment
     # of every loan
     loan_amts              = get_loan_amnt(X_loans, X_scaler)
-    installments_and_etp   = get_installment(X_loans, X_scaler)
-    installments           = installments_and_etp[:,0]
-    expected_total_payment = installments_and_etp[:,1]
+    installments           = get_installment(X_loans, X_scaler)
+    expected_total_payment = get_expected_total_payment(X_loans, X_scaler)
     terms                  = expected_total_payment / installments
 
     current_virtual_profits = []
