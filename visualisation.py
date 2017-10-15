@@ -22,14 +22,17 @@ def test():
     #test call
     plot_portfolio_model_compare(time, port_avg, port_std)
 
-def plot_portfolio_performance(performance):
+def get_plot_data_from_performance(performance):
     """
-    Generate a plot of the portfolio performance over time given
-    loan decisions made based on strategy chosen from varying models.
+    Generates a list of mean and std deviation for a performance.
 
-    Parameters
-    ----------
-    performance: performance statistics of the portfolio over time.
+    Outputs
+    -------
+    t: Time period
+    mean: [D, T] array, where D is the types of data to show (eg profits, fund utilization)
+        and T is the time period. Contains the mean of the data.
+    std: [D, T] array, where D is the types of data to show (eg profits, fund utilization)
+        and T is the time period. Contains the std deviation of the data.
     """
     _, num_months, D = performance.shape
     mean, std = np.zeros((D, num_months)), np.zeros((D, num_months))
@@ -62,16 +65,31 @@ def plot_portfolio_performance(performance):
     mean[3,:]          = mean_profit_margin
     std[3,:]           = std_profit_margin
 
-    # Draw plots
-    t = np.arange(num_months)
-    fig = plt.figure(figsize=(25,12))
-
     # Represent in thousands
     mean[0:2,:] = mean[0:2,:] / 1000
     std[0:2,:]  = std[0:2,:] / 1000
     # Represent in percentage
     mean[3,:] = mean[3,:] * 100
     std[3,:]  = std[3,:] * 100
+
+    t = np.arange(num_months)
+
+    return t, mean, std
+
+def plot_portfolio_performance(performance):
+    """
+    Generate a plot of the portfolio performance over time given
+    loan decisions made based on strategy chosen from varying models.
+
+    Parameters
+    ----------
+    performance: performance statistics of the portfolio over time.
+    """
+    t, mean, std = get_plot_data_from_performance(performance)
+
+    # Draw plots
+    fig = plt.figure(figsize=(25,12))
+
     add_suplot_with_mean_and_std(fig, (2, 2, 1, "Cumulative profits", "Time (in months)", "Money (thousands)"),
                                  t, mean[0], std[0], line_col="red", fill_col="r")
     add_suplot_with_mean_and_std(fig, (2, 2, 2, "Funds remaining in the portfolio", "Time (in months)", "Money (thousands)"),
@@ -81,6 +99,34 @@ def plot_portfolio_performance(performance):
     add_suplot_with_mean_and_std(fig, (2, 2, 4, "Profit percentage", "Time (in months)", "Percentage (%)"),
                                  t, mean[3], std[3], line_col="black", fill_col="k")
     plt.tight_layout()
+    plt.show()
+
+def plot_portfolio_performance_comparisons(performances):
+    _, num_months, D = performances[0].shape
+    t = np.arange(num_months)
+    fig = plt.figure(figsize=(25,12))
+    means, stds = [], []
+
+    for performance in performances:
+        _, mean, std = get_plot_data_from_performance(performance)
+        means.append(mean)
+        stds.append(std)
+    line_cols = ["red", "blue", "green", "black"]
+    fill_cols = ["r", "b", "g", "k"]
+
+    add_subplots_with_multiple_lines_mean_and_std(fig, 
+        (2, 2, 1, "Cumulative profits", "Time (in months)", "Money (thousands)"), t, 
+        [mean[0] for mean in means], [std[0] for std in stds], line_cols, fill_cols)
+    add_subplots_with_multiple_lines_mean_and_std(fig,
+        (2, 2, 2, "Funds remaining in the portfolio", "Time (in months)", "Money (thousands)"), t, 
+        [mean[1] for mean in means], [std[1] for std in stds], line_cols, fill_cols)
+    add_subplots_with_multiple_lines_mean_and_std(fig, 
+        (2, 2, 3, "Profits during the month", "Time (in months)", "Money ($)"), t, 
+        [mean[2] for mean in means], [std[2] for std in stds], line_cols, fill_cols)
+    add_subplots_with_multiple_lines_mean_and_std(fig, 
+        (2, 2, 4, "Profit percentage", "Time (in months)", "Percentage (%)"), t, 
+        [mean[3] for mean in means], [std[3] for std in stds], line_cols, fill_cols)
+
     plt.show()
 
 def add_suplot_with_mean_and_std(fig, subplot_info, t, mean, std, line_col='black', fill_col='k', ymin=None, ymax=None):
@@ -112,8 +158,21 @@ def add_suplot_with_mean_and_std(fig, subplot_info, t, mean, std, line_col='blac
     ymin = ymin - 100
     """
 
-    plt.tight_layout()
-    plt.show()
+def add_subplots_with_multiple_lines_mean_and_std(fig, subplot_info, t, means, stds, line_cols, fill_cols):
+    col, row, plot_no, title, xlabel, ylabel = subplot_info
+    sub = fig.add_subplot(col, row, plot_no)
+
+    for i in range(len(means)):
+        mean = means[i]
+        std  = stds[i]
+        line_col = line_cols[i]
+        fill_col = fill_cols[i]
+        
+        sub.set_title(title)
+        sub.set_xlabel(xlabel)
+        sub.set_ylabel(ylabel)
+        sub.plot(t, mean, line_col)
+        sub.fill_between(t, mean - std, mean + std, alpha=0.1, color=fill_col)
 
 #plot on the same axis
 def plot_portfolio_model_compare(t, mean, std):

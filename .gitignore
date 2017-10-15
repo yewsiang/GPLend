@@ -1,5 +1,12 @@
 dataset/dummy_linh.csv
 
+__pycache__/*
+.ipynb_checkpoints/*
+
+report/report.aux
+report/report.log
+report/report.pdf
+
 auxil/*
 out/*
 .idea/*

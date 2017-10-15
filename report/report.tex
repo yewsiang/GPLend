@@ -9,13 +9,14 @@
 \usepackage{amsfonts}
 \usepackage{multirow}
 \usepackage{amsthm}
+\usepackage[colorlinks=true]{hyperref}
 \frenchspacing
 \setlength{\pdfpagewidth}{8.5in}
 \setlength{\pdfpageheight}{11in}
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %%%%% NEW COMMANDS %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 \newtheoremstyle{genius}
-{1.5} {1.5} {} {} {\scshape} {.} {.5em} {}
+{1.5} {1.5} {} {} {\bfseries} {.} {.5em} {}
 % %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 \newcommand{\e}{\ensuremath{\epsilon}}
 \newcommand{\bb}[1]{\ensuremath{\mathbb{#1}}}
@@ -34,17 +35,23 @@
 \theoremstyle{genius}
 \newtheorem{ex}{Example}
 \newtheorem{defn}[ex]{Definition}
-\newtheorem{lem}[ex]{Lemma}
 \newtheorem*{pf}{Proof}
 % \theoremstyle{plain}
 \newtheorem{thm}[ex]{Theorem}
 \newtheorem{prop}[ex]{Proposition}
-\newtheorem{col}[ex]{Corollary}
 \newtheorem{rem}[ex]{Remark}
+\newtheorem{expmt}[ex]{Experiment}
+% %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\newcommand{\exautorefname}{Example}
+\newcommand{\defnautorefname}{Definition}
+\newcommand{\thmautorefname}{Theorem}
+\newcommand{\propautorefname}{Proposition}
+\newcommand{\remautorefname}{Remark}
+\newcommand{\expmtautorefname}{Experiment}
 
 \pdfinfo{
 /Title (Gaussian Process Regression for Loan Recommendations)
-/Author (Gao Bo, Jack Shee, Mikaela Angelina Chan Uy, Tang Yiew Siang, Tran Hoang Bao Linh)}
+/Author (Gao Bo, Jack Shee, Mikaela Angelina Chan Uy, Tang Yew Siang, Tran Hoang Bao Linh)}
 
 \setcounter{secnumdepth}{1}
 \begin{document}
@@ -55,7 +62,7 @@
 \author{
 National University of Singapore \\
 CS4246 Group 06 \AND
-\normalsize\normalfont\textbf{Gao Bo, A0} \\ 
+\normalsize\normalfont\textbf{Gao Bo, A0121585H} \\ 
 \normalsize\normalfont\textbf{Jack Shee, A0} \\
 \normalsize\normalfont\textbf{Mikaela Angelina Chan Uy, A0174439W} \And
 \normalsize\normalfont\textbf{Tang Yew Siang, A0139817U} \\
@@ -69,7 +76,7 @@ The loaning process involves an officer in a lending company and a loaner needin
 
 \section{Introduction}
 \noindent 
-At any point in our lives, we might be faced in crucial situations where we need to apply for loans. In times like these, we turn to lending companies. As a loan officer in a lending company, one must assess the loaner's background in order to determine the his/her eligibility to apply for a loan and the interest rate that comes with it. This assessment takes many factors into consideration, such as financial history, employment background, assets owned among many others.The goal of the loan officer is to determine the risks involved in accepting the loan (i.e. the loaner's credit score), which takes into consideration ability of the loaner to eventually pay back the loan or the chance of it defaulting, and make a decision and charge an interest rate accordingly. As a loaner, one's goal is to successfully apply for a loan with a fair interest rate. Hence, one must also have a rough idea of his/her credit score in order to have an approximate interest rate to expect. 
+At any point in our lives, we might be faced in crucial situations where we need to apply for loans. In times like these, we turn to lending companies. As a loan officer in a lending company, one must assess the loaner's background in order to determine the his/her eligibility to apply for a loan and the interest rate that comes with it. This assessment takes many factors into consideration, such as financial history, employment background, assets owned among many others.The goal of the loan officer is to determine the risks involved in accepting the loan (i.e. the loanee's credit score), which takes into consideration ability of the loanee to eventually pay back the loan or the chance of him/her defaulting, and make a decision and charge an interest rate accordingly. As a loanee, one's goal is to successfully apply for a loan with a fair interest rate. Hence, one must also have a rough idea of his/her credit score in order to have an approximate interest rate to expect. 
 
 This project aims to utilize the strengths of Gaussian processes to build a tool for both loan officers and loaners that makes loan approvals fairer and alleviate human biases and prejudices in decision making.
 
@@ -80,36 +87,127 @@ Our goal is to exploit the predictive mean and variance of the Gaussian Processe
 
 Unlike other learning models such as \textbf{X, Y, Z (whatever we used as comparisons)} that only provide a predictive mean, we want to leverage on the predicted uncertainty of the GP model in order to come up with a better prediction. GP models are particularly better suited for our application compared to traditional regression models since it would not only give us a predicted credit score (predicted mean), but it will also provide us with a range of uncertainty (predicted variance) that comes with it. For example, given two loaners A and B with predicted variances $\sigma_{A}^2$ and $\sigma_{B}^2$ and equal predicted means, if $\sigma_{A}^2>\sigma_{B}^2$, then loaner B would have a higher credit score compared to loaner A since a lower variance would mean lower risk.
 
-Furthermore, ethical implications for the application of loan-making based on Gaussian Processes also needs to be considered. Inherently, our current system of lending is still very manual with human interferances. Our human biases and prejudices lead to discrimination and inequality. This is because whenever a person needs a loan, they have to first speak with a loan advisor and then fill out a form containing information which is ultimately judged by another person who albeit unconsciously but nevertheless can make a biased assessment of the person’s eligibility for the loan. The digitisation of loan making could potentially make obtaining loans fairer for all. However, there is also a concern that doing so may in fact inadvertently reinforce human prejudices. This is when the quality and quantity of data used to train the model becomes critical to building fairness into algorithm. With our current GP model, we are aware that that our model could in fact lead us to make decisions that may be discriminatory. However, as there currently is no other model regarding making loan assessments, we think that with further model training on larger data, our application can be improved to make loan approvals fairer.  
-
 \section{Technical Approach}
-Gaussian process:
+The Gaussian process is a collection of random variables, any finite subset of which have a multivariate Gaussian distribution. It is completely specified by mean function $\mu(\textbf{x})$ and a covariance function $k(\textbf{x},\textbf{x}')$ such that
 
-\begin{align*}
-	\mu(\textbf{x}) &= E[f(\textbf{x})] \\
-	k(\textbf{x}, \textbf{x}') &= E[(f(\textbf{x}) - \mu(\textbf{x}))(f(\textbf{x}') - \mu(\textbf{x}')] \\
-\end{align*}
-
-The GP can then be denoted as:
 \[f(\textbf{x}) \sim \mathcal{GP}(\mu(\textbf{x}), k(\textbf{x}, \textbf{x}'))\]
 
-\subsection{Problem Definition}
-Hello
+In the real world, our observation $\textbf{y}=[y_1,y_2,...y_i]^T$ will be corrupted by random noise such that 
 
-\begin{enumerate}
-	\item Hello
-	\item Hello
-\end{enumerate}
+\begin{align*}
+	& y_i = f(\textbf{x}_i) + \epsilon_i \\
+	& \epsilon_i \sim\mathcal{N}(0, \sigma^2_n)
+\end{align*}
+
+Given a new input point $x_*$ for which we want to obtain a prediction $p(f_*|y)$, GP will output the predictive mean and variance given by
+
+\begin{align} \label{condition gp}
+	& E[f_*|\textbf{y}]=\mu(\textbf{x}_*)+\textbf{k}_*^T(\textbf{K}+\sigma_n^2\textbf{I})^{-1} (\textbf{y}-\mu)\\
+	& V[f_*|\textbf{y}]=k(\textbf{x}, \textbf{x}')-\textbf{k}_*^T(\textbf{K}+\sigma_n^2\textbf{I})^{-1}\textbf{k}_*
+\end{align}
+
+
+\subsection{Problem Definition} \label{problem definition} 
+We are given a dataset of loans, $\{L_1, L_2, ... , L_n\}$, where each loan $L$ is a (d+1)-dimensional tuple $(X_1, X_2, ... , X_d, Y)$ (to be discussed in \ref{feature engineering}), and $(X_1, X_2, ... , X_d) $ are the features of each loan and $Y$ is the total payment by the loanee. We want to learn a function $f: (X_1, X_2, ... , X_d) \mapsto Y$ which is essentially a function that can be interpreted as a credit score for loanees.
+
+With this function $f$, we will be able to make predictions $\hat{Y}$ about the total payment that a loanee will eventually make and determine whether or not to approve the loan application.
 
 \subsection{Model Definition}
-Hello
+To predict the function $f$ defined \nameref{problem definition}, we model the problem using a Gaussian process. We assume $f$ follows a Gaussian process 
+whose mean and covariance functions are not known to us. Using hyper-parameter optimization, we find these functions and construct the Gaussian process. This Gaussian process is then used to predict the output of $f$ on any test input using the formula in \ref{condition gp}.\\
+
+\subsection{Decision Strategy} \label{decision strategy}
+After obtaining predictions from the model, we need to make a decision whether to give the applicant the loan. We call this decision the \textbf{loan decision} (subsequent uses of the word "loan decision" refer to this definition). Our method of making loan decisions is described below.\\
+We add one input to our model, which is the \textbf{loan threshold}. Subsequent uses of the word "threshold" refer to this loan threshold. The loan threshold is the \textit{lowest probability of full payment} an applicant can have in order to be recommended by the model. Below we explain "threshold" and "probability of full payment" in more details.
+\subsubsection{Probability of Full Payment:}We fully make use of the predictions from Gaussian Processes model rather than just the mean. For each loan application, the GP model outputs a pair $(\mu, \sigma^2)$, which are the mean and variance of the total payment the applicant will make. Since this value follows a Gaussian distribution by our assumption, we can determine this distribution completely from the pair $(\mu, \sigma^2)$. The probability of full payment can be computed as follows:
+\begin{equation} \label{prob}
+\begin{aligned}
+\Pr(\text{full payment})&  = \Pr(PP \ge SP)\\
+& = \int_{SP}^{\infty} \frac{1}{\sigma\sqrt{2\pi}} e^{ -\frac{(x-\mu)^2}{2\sigma^2}}\end{aligned}
+\end{equation}
+where $PP$ denotes the \textit{predicted payment}, which is the output random variable for the total payment from the GP model, and  $SP$ denotes the \textit{supposed payment}, which is the payment the applicant is supposed to make based on his loan amount, period and installments. $PP \ge SP$ means the applicant is capable of paying the full loan.
+\subsubsection{Loan threshold:} The loan threshold $t$ is the lowest probability of full payment the model needs to recommend the loan. The loan is recommended if and only if $\Pr(PP \le SP)\ge t$, where $\Pr(PP \ge SP)$ is obtained from \eqref{prob}.
+\subsubsection{Practical Method:} It is impractical to compute the probabilities using \eqref{prob}. Instead, we first specify a value $t_0\in [0, 1]$ for the loan threshold. Using the pre-defined method $predict\_quantiles$ in the GP API we use, we are able to obtain a confidence interval for of any probability range. In our case, we compute
+$$(P_{lower}, P_{upper}) = predict\_quantiles(1-t_0, 1)$$
+We have the following
+$$\Pr(PP \ge SP)\ge t_0 \iff SP\le P_{lower}$$
+Thus we compare $SP$ with $P_{lower}$ rather than compute the probability itself.\\
+%------------TODO: Add threshold optimization section-----------------
+The current threshold value we are using is $t_0 = 0.6$.
 
 \section{Experimental Setup}
 \subsection{Dataset}
-Hello
+Our primary dataset comes from LendingClub, a money lending company based in San Francisco. The loan dataset contains all relevant borrower information for loans issued from 2007 to 2011. There are a total of 42,540 entries in the dataset, and each entry has 129 attributes. The following are some of the attributes we extracted from the dataset for training purposes:
+
+\begin{itemize}
+\item[] \textbf{loan amount} - the loan amount applied
+\item[] \textbf{term} - the installment period for the loan
+\item[] \textbf{installment} - monthly payment for the loan
+\item[] \textbf{interest rate} - interest rate on the loan
+\item[] \textbf{employment length} - employment length in years
+\item[] \textbf{home ownership} - home ownership status provided by borrower during loan registration
+\item[] \textbf{annual income} - annual income of the loanee
+\item[] \textbf{verification status} - indicates whether income is verified
+\item[] \textbf{number of delinquency} - number of incidences of delinquency in loanee's credit file
+\item[] \textbf{total payment} - total loan payment made by the loanee
+\end{itemize}
+
+\subsection{Pre-processing} \label{preprocess}
+The extracted features consist of both numerical and categorical features. The categorical features are converted into vectors using one-hot encoding. Numerical features are scaled so that their values fall between 0 and 1 according to the formula 
+\begin{align*}
+& X_{scaled} = (X-X_{min}) / (X_{max} - X_{min})
+\end{align*}
+
+The dataset is then split into three sets, training set, validation set and test set.
+\smallbreak
+In the next subsection, we will explain how we determine the relevance of each chosen feature.
+
+\subsection{Feature Engineering} \label{feature engineering}
+It is important to find a feature set which has high impact on output prediction, since it would reduce the input dimension, speed up the training process and possibly lead to more accurate prediction. We used the \textbf{Automatic Relevance Determination}(ARD) algorithm to determine how much each feature contribute to the output. The algorithm is able to output a weight with respect to each feature. Feature with weight close to zero has little relevance to the output and can be safely pruned. 
+
+By running ARD, we discovered that all categorical features have weights close to zero. This is quite surprising as we believe some of these features, such as home ownership status, should have high relevance to output prediction. Hence, we decided that it might be more meaningful to transform these categorical features into numerical ones by assigning a ranking to each category. For example, for home ownership status, we assigned high ranking for OWN status, and low ranking for MORTGAGE and RENT status. Such assignment coincides with a loan officer's assessment of the loanee's credit score with respect to this feature. 
+
+We ran the same training process with the original feature set and the improved feature set, the prediction results for the two feature sets are compared. This will be discussed in greater detail in experimental evaluation section.   
 
 \section{Experimental Evaluation}
-Hello 
+For a portfolio manager, there will be \textbf{one} main objective in the long-term, total profits or total profits with risk adjusted, since that is the main goal of the shareholders. However, in the short term, there can be \textbf{multiple} components that contribute to total profits. We identify two of the salient ones:
+\smallbreak
+\textbf{Profit Margins of Loans} - The amount of profits that are gained for the money that has been loaned out. With a high profit margin, it implies the quality of the loans made are better in that a) the loanee is able to pay back the loan, and b) the loanee is paying a sufficiently high interest rate for the loan. This margin is able to show if the high profits that are made by a portfolio manager is due to simply loaning out a large sum of money (and hence, incurring a huge opportunity costs in forgone investments) at a low margin. Assuming all else stays constant, an increase in profit margin will increase the total profits.
+\smallbreak
+\textbf{Total Fund Utilization Rate} - The percentage of the funds available to the manager that has been loaned out. With a high fund utilization rate, it implies that the portfolio manager is utilizing the funds effectively and not letting it idle. Assuming all else stays constant, an increase in total fund utilization rate will increase the total profits.
+\smallbreak
+
+We note that these 2 metrics are conflicting and optimizing either separately in the short term will not lead to maximized long term profits. For example, in order to improve fund utilization rate, a portfolio manager has to necessarily make more loans despite the same pool of loans to choose from. If the pool of loans is small enough, the portfolio manager will have to choose lower profit margin loans in order to make more loans to increase fund utilization rate.
+
+We also note that optimizing for absolute profits in the short term will not lead to maximized total profits in the long term...
+
+In the evaluation of the performance of different regression models and strategies, the single long-term objective of total profits is sufficient for comparisons. However, by analyzing these conflicting metrics that contribute to total profits, we will be able to understand the strengths and weaknesses of different regression models and strategies in making loan recommendations.
+
+\subsection{Batch Testing}
+One simple method for comparing regression models and strategies would be to evaluate it on the entire test set and make loan recommendations for each test data point. The total profits of the loans will then be the basis for comparisons.
+
+However, this method is naive because it assumes that a portfolio manager has all the funds needed to make all the loans recommended by the model. It does not reflect the true nature of the application where portfolio managers have limited funds, where loan applications are stochastic in nature and other restrictions that limit the utility of this simple evaluation. In order to make a realistic and meaningful evaluation of methods, we propose to use a simulation to simulate the monthly operations of a portfolio manager over a period of time.
+
+\subsection{Simulation Testing}
+The simulation evaluates the performance of a particular regression model and strategy over $total\_months$ when given $initial\_funds$ at the beginning. Every month, $loan\_applications\_per\_month$ loans will be randomly sampled from the test set to simulate a batch of new loan applications for that month. The regression model and strategy will be used to evaluate and rank each loan application to decide which loans should be made and with what priority. When loans have been made, the interest payments from these loans will flow into the funds available for the portfolio manager at the beginning of every month. 
+
+We measure the monthly average and variance of metrics such as profit margins and fund utilization rate over $total\_simulations$ number of simulations.
+
+Different portfolio managers will have different circumstances depending on the size, reputation and other attributes of their fund. However, they can adapt their situation to the simulation by configuring these simulation parameters:
+\smallbreak
+$total\_months$: Months to run the simulation for.
+\smallbreak
+$initial\_funds$: Starting pool of funds available for loans.
+\smallbreak
+$loan\_applications\_per\_month$: Number of incoming loan applications every month.
+\smallbreak
+$total\_simulations$: Number of simulations to run for.
+
+\subsection{Results}
+Compare Features v1 vs v2 vs v3 (just use total profits)
+Compare different strategies (SVM)
+Compare different GP kernels
+
 \begin{center}
 	\begin{tabular}{lllll}
 		\hline
@@ -129,8 +227,41 @@ Hello
 	\end{tabular}
 \end{center}
 
-\section{References}
+\subsection{Interpretation of Results}
+In the previous section, we have seen via experiment that with optimal hyper-parameters and enough training input diversity, the Gaussian Processes model outperforms other regression models, hence verifying our justification for choosing this model. From this outperformance, we also gain insights about our dataset and how loan managers can apply these insights to make better loan decision.
+\subsubsection{Input Relevance:}
+Theoretically, the GP model makes use of the dependence of inputs to make accurate prediction. Thus, if the GP model performs well on some dataset, this dataset satisfies the property that similar inputs corresponds to similar outputs. If the lending dataset has this property, it means that an incoming loan applicant's future payment will likely be similar to those of past loanees whose profiles are most similar to his profile. This in turn means that loan managers need not to look at all the profiles of past loanees to make the loan decision, but rather just the subset of loanees that have similar profiles to the applicant's. This method can save a significant amount of time for decision-making and achieve better accuracy by avoiding noise, i.e. ''irrelevant" profiles.\\
+We set up an experiment with GP model to verify that our lending dataset has this property.
+\begin{expmt}
+In this experiment \textit{relevance} of two inputs $\textbf{x}$ and $\textbf{x}'$ is defined to be the value of the covariance function of them, $k(\textbf{x}, \textbf{x}')$. This is, loosely speaking, the degree of similarities between these two inputs. This experiment tries to verify the following proposition:
+\begin{prop} \label{prop1}
+The higher $k(\textbf{x}, \textbf{x}')$ is, the more the training input $\textbf{x}'$ affects the accuracy of the prediction on testing input $\textbf{x}$.
+\end{prop}
+\noindent The experiment is carried out as follows:
+\begin{itemize}
+    \item \textbf{Pre-processing:} From the raw data $D$, obtain the training input $X_{train}$ via the pre-processing procedure in \nameref{preprocess} and feature engineering procedure in \nameref{feature engineering}.
+    \item \textbf{Picking Training Set:} For any input $\textbf{x}$, we let $\text{Top}_k(\textbf{x})$ be the $k$ most relevant inputs to $\textbf{x}$ in $X_{train}$, i.e. the $k$ inputs in $X_{train}$ whose covariance with $\textbf{x}$ are largest. Let $X_k(\textbf{x}) = X_{train}\setminus \text{Top}_k(\textbf{x})$, then $X_k(\textbf{x})$ is the least relevant inputs to $\textbf{x}$. We then proceed to re-train the model using $X_k(\textbf{x})$ only.
+    \item \textbf{Testing:} Firstly we fix a value for $k$, which is typically a portion of the size of $X_{train}$. Let $X_{test}$ be the testing input set. For each $\textbf{x}\in X_{test}$, we re-train the model using $X_k(\textbf{x})$ and let it predict the mean and variance of $f(\textbf{x})$. We then proceed to make loan decisions with this prediction using the procedure in \nameref{decision strategy}.
+\end{itemize}
+In short, the set up is similar to our previous experiments on different models, but during testing, we re-train the model at each input using only a subset of the training dataset that is ''irrelevant" to it.\\
+Our goal is to see whether the performance decreases as compared to when we train on the whole training set. A significant decrease confirms proposition \autoref{prop1} and hence confirms the property on the lending dataset. The following table summarizes our findings:
+%-------TODO-----------------------
+%----RESULTS TABLE-----------------
+\end{expmt}
 
+\section{Alternative Applications}
+
+Tool for loanees as well
+
+\section{Ethical Implications}
+
+Furthermore, ethical implications for the application of loan-making based on Gaussian Processes also needs to be considered. Inherently, our current system of lending is still very manual with human interference. Our human biases and prejudices lead to discrimination and inequality. This is because whenever a person needs a loan, they have to first speak with a loan advisor and then fill out a form containing information which is ultimately judged by another person who albeit unconsciously but nevertheless can make a biased assessment of the person’s eligibility for the loan. The digitisation of loan making could potentially make obtaining loans fairer for all. However, there is also a concern that doing so may in fact inadvertently reinforce human prejudices. This is when the quality and quantity of data used to train the model becomes critical to building fairness into algorithm. With our current GP model, we are aware that that our model could in fact lead us to make decisions that may be discriminatory. However, as there currently is no other model regarding making loan assessments, we think that with further model training on larger data, our application can be improved to make loan approvals fairer.  
+
+\section{Conclusion}
+
+\section{References}
+sklearn
+GPy
 
 \section{Roles and Contributions}
 
