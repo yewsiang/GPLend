@@ -17,9 +17,11 @@ def lend_using_target_only(regressed_payment, X, y, X_scaler, threshold=1.0, ver
   (the regressed total payment of the customer).
   If predicted total payment of customer is below (threshold * X[0]) 
   (where X[0] is the loan amount), reject making the loan.
+
   """
   loan_amount = get_loan_amnt(X, X_scaler)
   satisfactory_payment = threshold * loan_amount
+
   loans_approved = regressed_payment > satisfactory_payment
   
   # Loaning to all
@@ -35,8 +37,8 @@ def lend_using_target_only(regressed_payment, X, y, X_scaler, threshold=1.0, ver
   profit_percentage = profits / loans_given * 100
   
   if verbose:
-    #print("\n---- Loan to All ----")
-    #print_loan_stats(X.shape[0], X.shape[0], loans_given_prev, payments_prev, profits_prev, profit_percentage_prev)
+    print("\n---- Loan to All ----")
+    print_loan_stats(X.shape[0], X.shape[0], loans_given_prev, payments_prev, profits_prev, profit_percentage_prev)
     
     print("\n---- Threshold: %f ----" % threshold)
     print_loan_stats(np.sum(loans_approved), X.shape[0], loans_given, payments, profits, profit_percentage)
