@@ -1,6 +1,6 @@
 import numpy as np
-from matplotlib import pyplot as pp
 
+from GPy.models import GPRegression
 from kernels import get_optimized_model, get_predictions
 from optimization import gp_optimize_threshold
 from simulation import lend_using_target_only
@@ -57,10 +57,71 @@ def test_kernel_relevance(kernel, X_train, y_train, X_val, y_val,
     for i in range(X_test.shape[0]):
         regressed_payment[i] = predict_irrelevant(kernel, X_train, y_train,
                                                   X_test[i:i+1, :], y_scaler,top_size)
-        print(i)
     print("\n============== Kernel: {} ====================".format(kernel.name))
     print("\n----------- Testing on X_test ------------")
     lend_using_target_only(regressed_payment, X_test, y_test, X_scaler, threshold=1.0)
     lend_using_target_only(regressed_payment, X_test, y_test, X_scaler, threshold=threshold)
 
     print(threshold)
+
+
+class GPRelevance:
+    X_train = None
+    y_train = None
+    kernel = None
+    top_size = 0
+
+    def __init__(self, X_train, y_train, top_size, kernel=None):
+        self.X_train = X_train
+        self.y_train = y_train
+        self.top_size = top_size
+        self.kernel = kernel
+
+    def predict_relevance(self, test_point):
+        # Covariance matrix K(X_train, test_point)
+        cov = -self.kernel.K(self.X_train, test_point)
+
+        # Partition into top k and the rest
+        partitions = cov.reshape(-1).argpartition(self.top_size)
+        rest_ind = partitions[self.top_size:]
+
+        X_irre = self.X_train[rest_ind]
+        y_irre = self.y_train[rest_ind]
+        model = GPRegression(X_irre, y_irre, kernel=self.kernel)
+        model.optimize()
+
+        return model.predict(test_point)
+
+
+    def predict_quantiles_relevance(self, test_point, quantiles=(0, 100)):
+        # Covariance matrix K(X_train, test_point)
+        cov = -self.kernel.K(self.X_train, test_point)
+
+        # Partition into top k and the rest
+        partitions = cov.reshape(-1).argpartition(self.top_size)
+        rest_ind = partitions[self.top_size:]
+
+        X_irre = self.X_train[rest_ind]
+        y_irre = self.y_train[rest_ind]
+        model = GPRegression(X_irre, y_irre, kernel=self.kernel)
+        model.optimize()
+
+        return model.predict_quantiles(test_point, quantiles)
+
+
+    def predict(self, X_test):
+        l = X_test.shape[0]
+        y_pred = np.zeros(l)
+        var = np.zeros(l)
+        for i in range(l):
+            y_pred[i], var[i] = self.predict_relevance(X_test[i:i+1, :])
+        return y_pred, var
+
+
+    def predict_quantiles(self, X_test, quantiles):
+        l = X_test.shape[0]
+        lower = np.zeros(l)
+        upper = np.zeros(l)
+        for i in range(l):
+            lower[i], upper[i] = self.predict_quantiles_relevance(X_test[i:i + 1, :], quantiles=quantiles)
+        return lower, upper
