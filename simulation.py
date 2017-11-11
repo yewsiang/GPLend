@@ -236,6 +236,13 @@ def simulate_time_period(model, X, y, X_scaler, y_scaler, threshold,
                                       optimize_for=optimize_for,
                                       version=version,
                                       model_type=model_type)
+    
+    # TODO: Implement Bayesian Optimization HERE
+    if version == 'bayesian_optimization':
+      X_added = np.unique(np.concatenate((model.X, X_loaned), axis=0), axis=0)
+      y_added = np.unique(np.concatenate((model.Y, y_loaned), axis=0), axis=0)
+      model.set_XY(X=X_added, Y=y_added)
+      model.optimize()
 
     # Update portfolio status
     portfolio.make_loans(X_loaned, y_loaned, X_scaler)
