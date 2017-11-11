@@ -64,7 +64,7 @@ def choose_max_loans_given_funds(X_loans_sorted, y_loans_sorted, X_scaler, fund_
   return X_loans_sorted[loan_ids,:], y_loans_sorted[loan_ids]
 
 def choose_loans(model, X_loans, y_loans, X_scaler, y_scaler, fund_given, threshold, 
-                 conf_quantile=(30,100), optimize_for="profits", 
+                 conf_quantile=(30,100), kappa=1, optimize_for="profits",
                  version="threshold_only", model_type="gp"):
   """
   Choose the loans to be made using different algorithms and returns the ids.
@@ -88,6 +88,9 @@ def choose_loans(model, X_loans, y_loans, X_scaler, y_scaler, fund_given, thresh
   elif model_type == "others":
     regressed_payment = model.predict(X_loans)
 
+  else:
+    raise ValueError('Invalid input for "model_type"')
+
   # TODO:
   # Optimize_for
 
@@ -104,6 +107,8 @@ def choose_loans(model, X_loans, y_loans, X_scaler, y_scaler, fund_given, thresh
     elif version == "expected_total_payment":
       expected_total_payment = get_expected_total_payment(X_loans, X_scaler)
       payment_to_loan_ratio = regressed_payment / expected_total_payment
+    else:
+      raise ValueError('Invalid input for "version"')
     desc_payment_to_loan_ratio_id = np.argsort(-payment_to_loan_ratio)
 
     desc_payment_to_loan_ratio = payment_to_loan_ratio[desc_payment_to_loan_ratio_id]
@@ -154,6 +159,16 @@ def choose_loans(model, X_loans, y_loans, X_scaler, y_scaler, fund_given, thresh
     is_ratio_above_threshold = desc_payment_to_loan_ratio > 1.
     X_loaned = X_loaned[is_ratio_above_threshold,:]
     y_loaned = y_loaned[is_ratio_above_threshold]
+
+  # TODO: Implement Bayesian Optimization HERE
+  elif version == "bayesian_optimization":
+    mean, var = model.predict(X_loans)
+    acquisition = mean + np.sqrt(var)*kappa
+    acquisition = y_scaler.inverse_transform(acquisition).reshape(-1)
+    acquisition[::-1].sort()  # Sort in descending order
+    able_to_payback = acquisition > 1.
+    X_loaned = X_loans[able_to_payback]
+    y_loaned = y_loans[able_to_payback]
 
   else:
     raise Exception("Unknown version specified: %s" % version)
