@@ -64,7 +64,7 @@ def choose_max_loans_given_funds(X_loans_sorted, y_loans_sorted, X_scaler, fund_
   return X_loans_sorted[loan_ids,:], y_loans_sorted[loan_ids]
 
 def choose_loans(model, X_loans, y_loans, X_scaler, y_scaler, fund_given, threshold, 
-                 conf_quantile=(30,100), kappa=1, optimize_for="profits",
+                 conf_quantile=(30,100), kappa=1., optimize_for="profits",
                  version="threshold_only", model_type="gp"):
   """
   Choose the loans to be made using different algorithms and returns the ids.
@@ -205,7 +205,7 @@ def simulate_N_time_periods(model, X, y, X_scaler, y_scaler, threshold, num_peri
 def simulate_time_period(model, X, y, X_scaler, y_scaler, threshold, 
                          fund_given=1e7, num_months=180, incoming_loans_per_time_period=50,
                          conf_quantile=(30,100), optimize_for="profits", 
-                         version="threshold_only", model_type="gp"):
+                         version="threshold_only", kappa=1., model_type="gp"):
   """
   Simulate having a portfolio with FUND_GIVEN ($) and NUM_MONTHS (months) to make loans,
   where there will be new INCOMING_LOANS_PER_TIME_PERIOD (loans/month) that is available every month.
@@ -235,6 +235,7 @@ def simulate_time_period(model, X, y, X_scaler, y_scaler, threshold,
                                       conf_quantile=conf_quantile,
                                       optimize_for=optimize_for,
                                       version=version,
+                                      kappa=kappa,
                                       model_type=model_type)
     
     # TODO: Implement Bayesian Optimization HERE
