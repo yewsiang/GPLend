@@ -1,6 +1,7 @@
 
-import matplotlib.pyplot as plt
 import numpy as np
+import matplotlib.pyplot as plt
+from matplotlib.legend_handler import HandlerLine2D
 
 def test():
     #dummy data
@@ -101,10 +102,10 @@ def plot_portfolio_performance(performance):
     plt.tight_layout()
     plt.show()
 
-def plot_portfolio_performance_comparisons(performances):
+def plot_portfolio_performance_comparisons(performances, figsize=(25,12), return_figure=False, legend_names=None):
     _, num_months, D = performances[0].shape
     t = np.arange(num_months)
-    fig = plt.figure(figsize=(25,12))
+    fig = plt.figure(figsize=figsize)
     means, stds = [], []
 
     for performance in performances:
@@ -116,17 +117,20 @@ def plot_portfolio_performance_comparisons(performances):
 
     add_subplots_with_multiple_lines_mean_and_std(fig, 
         (2, 2, 1, "Cumulative profits", "Time (in months)", "Money (thousands)"), t, 
-        [mean[0] for mean in means], [std[0] for std in stds], line_cols, fill_cols)
+        [mean[0] for mean in means], [std[0] for std in stds], line_cols, fill_cols, legend_names=legend_names)
     add_subplots_with_multiple_lines_mean_and_std(fig,
         (2, 2, 2, "Funds remaining in the portfolio", "Time (in months)", "Money (thousands)"), t, 
-        [mean[1] for mean in means], [std[1] for std in stds], line_cols, fill_cols)
+        [mean[1] for mean in means], [std[1] for std in stds], line_cols, fill_cols, legend_names=legend_names)
     add_subplots_with_multiple_lines_mean_and_std(fig, 
         (2, 2, 3, "Profits during the month", "Time (in months)", "Money ($)"), t, 
-        [mean[2] for mean in means], [std[2] for std in stds], line_cols, fill_cols)
+        [mean[2] for mean in means], [std[2] for std in stds], line_cols, fill_cols, legend_names=legend_names)
     add_subplots_with_multiple_lines_mean_and_std(fig, 
         (2, 2, 4, "Profit percentage", "Time (in months)", "Percentage (%)"), t, 
-        [mean[3] for mean in means], [std[3] for std in stds], line_cols, fill_cols)
-
+        [mean[3] for mean in means], [std[3] for std in stds], line_cols, fill_cols, legend_names=legend_names)
+    
+    if return_figure:
+        return fig
+    
     plt.show()
 
 def add_suplot_with_mean_and_std(fig, subplot_info, t, mean, std, line_col='black', fill_col='k', ymin=None, ymax=None):
@@ -158,7 +162,7 @@ def add_suplot_with_mean_and_std(fig, subplot_info, t, mean, std, line_col='blac
     ymin = ymin - 100
     """
 
-def add_subplots_with_multiple_lines_mean_and_std(fig, subplot_info, t, means, stds, line_cols, fill_cols):
+def add_subplots_with_multiple_lines_mean_and_std(fig, subplot_info, t, means, stds, line_cols, fill_cols, legend_names=None):
     col, row, plot_no, title, xlabel, ylabel = subplot_info
     sub = fig.add_subplot(col, row, plot_no)
 
@@ -171,8 +175,14 @@ def add_subplots_with_multiple_lines_mean_and_std(fig, subplot_info, t, means, s
         sub.set_title(title)
         sub.set_xlabel(xlabel)
         sub.set_ylabel(ylabel)
-        sub.plot(t, mean, line_col)
+
+        if legend_names is not None:
+            sub.plot(t, mean, line_col, label=legend_names[i])
+            sub.legend(handler_map={sub: HandlerLine2D()})
+        else:
+            sub.plot(t, mean, line_col)
         sub.fill_between(t, mean - std, mean + std, alpha=0.1, color=fill_col)
+        
 
 #plot on the same axis
 def plot_portfolio_model_compare(t, mean, std):

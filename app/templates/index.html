@@ -35,22 +35,20 @@
 <div class="ui container">
 <div class="ui vertical masthead center aligned segment">
   <div class="ui padded text container" >
-    <h1 class="ui header" style="margin-top: 0.3em;"> 
+    <h2 class="ui header" style="margin-top: 0.1em;"> 
       Simulation
-    </h1>
+    </h2>
   </div>
-  <div class="ui" style="margin-bottom: 2em; margin-top: 1em">
-    <h3 style="font-weight: 100">Test the results of your algorithm.</h3>
+  <div class="ui">
+    <h4 style="font-weight: 100">Test the performance of your algorithm using a simulation.</h3>
   </div>
 </div>
 </div>
 
 {% if results: %}
-<div class="ui segment aligned center">
-  <!-- Results: {% print(results[0], results[1]) %} -->
-  {{ results|safe }}
-  <!--<svg width="960" height="300"></svg> -->
-</div> 
+<!-- Results: {% print(results[0], results[1]) %} -->
+<div style="text-align: center; margin-top: -40px">{{ results|safe }}</div>
+<!--<svg width="960" height="300"></svg> -->
 {% endif %}
 
 <form class="ui form" action="/run" method="get">
