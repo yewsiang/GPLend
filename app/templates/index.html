@@ -2,7 +2,18 @@
 <html>
 <head>
     <title> The Lending Club </title>
-    <link rel="stylesheet" type="text/css" href="static/semantic/dist/semantic.min.css">
+    <link rel="stylesheet" type="text/css" href="../static/semantic/dist/semantic.min.css">
+    <!-- <script src="//d3js.org/d3.v4.min.js"></script>
+    <style>
+      .axis--x path {
+        display: none;
+      }
+      .line {
+        fill: none;
+        stroke: steelblue;
+        stroke-width: 1.5px;
+      }
+    </style> -->
 </head>
 
 <body>
@@ -13,7 +24,7 @@
     For Managers
   </a>
   <div class="ui small image" style="margin: 20px">
-      <a href="/"> <img src="static/img/lending_club_logo.png"> </a>
+      <a href="/"> <img src="../static/img/lending_club_logo.png"> </a>
   </div>
   <a class="item" href="/borrowers">
     For Borrowers
@@ -23,73 +34,214 @@
 
 <div class="ui container">
 <div class="ui vertical masthead center aligned segment">
-   <div class="ui padded text container" >
-       <h1 class="ui header" style="margin-top: 0.3em;"> 
-           Managers 
-        </h1>
-   </div>
-   <div class="ui" style="margin-bottom: 2em; margin-top: 1em">
-    <h3 style="font-weight: 100"> Wala wala </h3>
-    </div>
-    <a href="/about" class="ui circular primary huge button" style="margin-bottom: 1em;">Learn about wala </a>
+  <div class="ui padded text container" >
+    <h2 class="ui header" style="margin-top: 0.1em;"> 
+      Simulation
+    </h2>
+  </div>
+  <div class="ui">
+    <h4 style="font-weight: 100">Test the performance of your algorithm using a simulation.</h3>
+  </div>
 </div>
 </div>
 
-<div class="ui container">
-<div class="ui vertical center aligned segment">
-    <h2 style="font-weight: 200"> Interested? Join us as a... </h2>
-</div>
-<div class="ui vertical stripe segment">
-<div class="ui equal width stackable  grid">
-<div class="center aligned row">
-    <div class="column">
-        <h2 class="ui center aligned icon header">
-            <i class="blue university icon"></i>
-            <div class="content">
-                Participant
-                <div class="sub header" style="margin-top: 0.5em; font-size: 0.7em">Interested in being part of a value and sustainability driven startup? Join our three month innovation program with other youths in the region.
+{% if results: %}
+<!-- Results: {% print(results[0], results[1]) %} -->
+<div style="text-align: center; margin-top: -40px">{{ results|safe }}</div>
+<!--<svg width="960" height="300"></svg> -->
+{% endif %}
 
-                </div>
-            </div>
-        </h2>
-    </div>
-    <div class="column">
-        <h2 class="ui center aligned icon header">
-            <i class="blue heart icon"></i>
-            <div class="content">
-                Partner
-                <div class="sub header" style="margin-top: 0.5em; font-size: 0.7em; text-align: center"> Have sustainability issues you want to solve? Want to tap on the brightest young minds of our generation? Need an international
-                network and insight into new ideas?
-                </div>
-            </div>
-        </h2>
-    </div>
-    <div class="column">
-        <h2 class="ui center aligned icon header">
-            <i class="blue student icon"></i>
-            <div class="content">
-                Mentor
-                <div class="sub header" style="margin-top: 0.5em; font-size: 0.7em"> Help our participants design and implement ground-breaking ideas in the sustainability sector with your expertise and guidance.
-                </div>
-            </div>
-        </h2>
-    </div>
+<form class="ui form" action="/run" method="get">
+<div class="ui three column stackable grid container">
 
+  <div class = "column">
+    <div class="grouped fields">
+      <div class="ui link cards">
+      <div class="red card">
+      <div class="content">
+        <div class="header">Active Learning</div>
+      </div>
+      <div class="content">
+        <div class="field">
+          <div class="ui radio checkbox">
+            <input type="radio" name="active_learning" value="ent" checked="" tabindex="0">
+            <label>Entropy</label>
+          </div>
+        </div>
+        <div class="field">
+          <div class="ui radio checkbox">
+            <input type="radio" name="active_learning" value="mi" tabindex="0">
+            <label>Mutual Information</label>
+          </div>
+        </div>
+        <div class="field">
+          <div class="ui radio checkbox">
+            <input type="radio" name="active_learning" value="yada" tabindex="0">
+            <label>Yada</label>
+          </div>
+        </div>
+      </div>
+      </div>
+      </div>
+    </div>
+  </div>
 
-</div>
-<div class="center aligned row">
-    <div class="column">
-        <button class="ui blue circular basic button">Find out more</button>
+  <div class = "column">
+    <div class="grouped fields">
+      <div class="ui link cards">
+      <div class="orange card">
+
+      <div class="content">
+        <div class="header">Simulation</div>
+      </div>
+      <div class="content">
+        <div class="inline fields">
+          <label>Simulations</label>
+          <input type="text" name="n_sims" placeholder="20">
+        </div>
+        <div class="inline fields">
+          <label>Months per Simulation</label>
+          <input type="text" name="n_months" placeholder="60">
+        </div>
+        <div class="inline fields">
+          <label>Loans per Month</label>
+          <input type="text" name="n_loans_per_month" placeholder="20">
+        </div>
+        <div class="inline fields">
+          <label>Initial Funds</label>
+          <input type="text" name="initial_funds" placeholder="$1,000,000">
+        </div>
+        <div class="inline fields">
+          <label>Confidence Threshold</label>
+          <input type="text" name="confidence" placeholder="0.7">
+        </div>
+      </div>
+
+      </div>
+      </div>
     </div>
-    <div class="column">
-        <button class="ui blue circular basic button">Find out more</button>
+  </div>
+
+  <div class = "column">
+    <div class="grouped fields">
+      <div class="ui link cards">
+      <div class="yellow card">
+      <div class="content">
+        <div class="header">Bayesian Optimization</div>
+      </div>
+      <div class="content">
+        <div class="field">
+          <div class="ui radio checkbox">
+            <input type="radio" name="bayes_opt" value="bo1" checked="" tabindex="0">
+            <label>BO1</label>
+          </div>
+        </div>
+        <div class="field">
+          <div class="ui radio checkbox">
+            <input type="radio" name="bayes_opt" value="bo2" tabindex="0">
+            <label>BO2</label>
+          </div>
+        </div>
+        <div class="field">
+          <div class="ui radio checkbox">
+            <input type="radio" name="bayes_opt" value="bo3" tabindex="0">
+            <label>BO3</label>
+          </div>
+        </div>
+      </div>
+      </div>
+      </div>
     </div>
-    <div class="column">
-        <button class="ui blue circular basic button">Find out more</button>
-    </div>
+  </div>
+  
+</div>
+<div class = "ui center aligned container">
+<div class = "ui basic segment">
+  <button class="ui circular basic big green button" type="submit"><i class="play icon"></i>Run</button>
 </div>
 </div>
-</div>
-</div>
+</form>
+
 </body>
+
+<!-- <script>
+  var svg = d3.select("svg"),
+      margin = {top: 20, right: 80, bottom: 30, left: 50},
+      width = svg.attr("width") - margin.left - margin.right,
+      height = svg.attr("height") - margin.top - margin.bottom,
+      g = svg.append("g").attr("transform", "translate(" + margin.left + "," + margin.top + ")");
+
+  var parseTime = d3.timeParse("%Y%m%d");
+
+  var x = d3.scaleTime().range([0, width]),
+      y = d3.scaleLinear().range([height, 0]),
+      z = d3.scaleOrdinal(d3.schemeCategory10);
+
+  var line = d3.line()
+      .curve(d3.curveBasis)
+      .x(function(d) { return x(d.date); })
+      .y(function(d) { return y(d.temperature); });
+
+  d3.csv("static/test_data.csv", type, function(error, data) {
+    if (error) throw error;
+
+    var cities = data.columns.slice(1).map(function(id) {
+      return {
+        id: id,
+        values: data.map(function(d) {
+          return {date: d.date, temperature: d[id]};
+        })
+      };
+    });
+
+    x.domain(d3.extent(data, function(d) { return d.date; }));
+
+    y.domain([
+      d3.min(cities, function(c) { return d3.min(c.values, function(d) { return d.temperature; }); }),
+      d3.max(cities, function(c) { return d3.max(c.values, function(d) { return d.temperature; }); })
+    ]);
+
+    z.domain(cities.map(function(c) { return c.id; }));
+
+    g.append("g")
+        .attr("class", "axis axis--x")
+        .attr("transform", "translate(0," + height + ")")
+        .call(d3.axisBottom(x));
+
+    g.append("g")
+        .attr("class", "axis axis--y")
+        .call(d3.axisLeft(y))
+      .append("text")
+        .attr("transform", "rotate(-90)")
+        .attr("y", 6)
+        .attr("dy", "0.71em")
+        .attr("fill", "#000")
+        .text("Temperature, ºF");
+
+    var city = g.selectAll(".city")
+      .data(cities)
+      .enter().append("g")
+        .attr("class", "city");
+
+    city.append("path")
+        .attr("class", "line")
+        .attr("d", function(d) { return line(d.values); })
+        .style("stroke", function(d) { return z(d.id); });
+
+    city.append("text")
+        .datum(function(d) { return {id: d.id, value: d.values[d.values.length - 1]}; })
+        .attr("transform", function(d) { return "translate(" + x(d.value.date) + "," + y(d.value.temperature) + ")"; })
+        .attr("x", 3)
+        .attr("dy", "0.35em")
+        .style("font", "10px sans-serif")
+        .text(function(d) { return d.id; });
+  });
+
+  function type(d, _, columns) {
+    d.date = parseTime(d.date);
+    for (var i = 1, n = columns.length, c; i < n; ++i) d[c = columns[i]] = +d[c];
+    return d;
+  }
+</script> -->
+
 </html>
