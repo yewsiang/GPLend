@@ -186,9 +186,15 @@ def choose_loans(model, X_loans, y_loans, X_scaler, y_scaler, fund_given, thresh
 def simulate_N_time_periods(model, X, y, X_scaler, y_scaler, threshold, num_periods=100, 
                            fund_given=1e7, num_months=180, incoming_loans_per_time_period=50,
                            conf_quantile=(30,100), optimize_for="profits", 
-                           version="threshold_only", model_type="gp", seed=0):
+                           version="threshold_only", kappa=1., bay_opt_steps=-1, model_type="gp", seed=0):
   np.random.seed(seed)
   performances = np.zeros((num_periods, num_months, PORTFOLIO_PERFORMANCE_DIMENSIONS))
+  
+  # Preprocessing number of Bayesian Optimizing steps
+  if bay_opt_steps == -1:
+    bay_opt_steps = num_periods * num_months
+  remaining_bay_opt_steps = bay_opt_steps
+  
   for period in range(num_periods):
     if period % 10 == 0: print("Simulating period %d..." % period)
     performance = simulate_time_period(model, X, y, X_scaler, y_scaler, threshold,
@@ -197,15 +203,23 @@ def simulate_N_time_periods(model, X, y, X_scaler, y_scaler, threshold, num_peri
                                       incoming_loans_per_time_period=incoming_loans_per_time_period,
                                       conf_quantile=conf_quantile,
                                       optimize_for=optimize_for, 
-                                      version=version, 
+                                      version=version,
+                                      bay_opt_steps=min(remaining_bay_opt_steps, num_months),
+                                      kappa=kappa,
                                       model_type=model_type)
     performances[period,:] = performance
+
+    # Update remaining Bayesian Optimizing steps
+    remaining_bay_opt_steps -= num_months
+    if remaining_bay_opt_steps < 0:
+      remaining_bay_opt_steps = 0
+    
   return performances
 
 def simulate_time_period(model, X, y, X_scaler, y_scaler, threshold, 
                          fund_given=1e7, num_months=180, incoming_loans_per_time_period=50,
                          conf_quantile=(30,100), optimize_for="profits", 
-                         version="threshold_only", kappa=1., model_type="gp"):
+                         version="threshold_only", kappa=1., bay_opt_steps=-1, model_type="gp"):
   """
   Simulate having a portfolio with FUND_GIVEN ($) and NUM_MONTHS (months) to make loans,
   where there will be new INCOMING_LOANS_PER_TIME_PERIOD (loans/month) that is available every month.
@@ -216,6 +230,14 @@ def simulate_time_period(model, X, y, X_scaler, y_scaler, threshold,
   """
   N, D = X.shape
   portfolio = Portfolio(fund_given, num_months)
+  
+  # Description of bay_opt_steps:
+  # Keep updating model by Bayesian Optimization until bay_opt_steps steps is reached
+  # Then let the model predict using the "loan_amount_and_variance" version
+  
+  # Preprocessing number of Bayesian Optimizing steps
+  if bay_opt_steps == -1:
+    bay_opt_steps = num_months
 
   for t in range(num_months):
     # Simulate interest flows current loans
@@ -240,10 +262,14 @@ def simulate_time_period(model, X, y, X_scaler, y_scaler, threshold,
     
     # TODO: Implement Bayesian Optimization HERE
     if version == 'bayesian_optimization':
+      print(t)
       X_added = np.unique(np.concatenate((model.X, X_loaned), axis=0), axis=0)
-      y_added = np.unique(np.concatenate((model.Y, y_loaned), axis=0), axis=0)
+      y_added = np.unique(np.concatenate((model.Y, y_loaned.reshape(-1, 1)), axis=0), axis=0)
       model.set_XY(X=X_added, Y=y_added)
       model.optimize()
+      bay_opt_steps -= 1
+      if bay_opt_steps == 0:
+        version = 'loan_amount_and_variance'
 
     # Update portfolio status
     portfolio.make_loans(X_loaned, y_loaned, X_scaler)
