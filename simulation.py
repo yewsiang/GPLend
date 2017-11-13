@@ -4,6 +4,16 @@ from features import *
 
 PORTFOLIO_PERFORMANCE_DIMENSIONS = 5
 
+# TODO: Constants for experiment versions HERE
+LOAN_AMOUNT = 'loan_amount'
+LOAN_AMOUNT_AND_VARIANCE = 'loan_amount_and_variance'
+EXPECTED_TOTAL_PAYMENT = 'expected_total_payment'
+EXPECTED_TOTAL_PAYMENT_AND_VARIANCE = 'expected_total_payment_and_variance'
+LOAN_ALL = 'loan_all'
+BAYESIAN_OPTIMIZATION = 'bayesian_optimization'
+SELF_UPDATING_GP = 'self_updating_gp'
+
+
 def print_loan_stats(num_loans, total_loans, loans_given, payments_rec, profits, profit_perc):
   print("Loans approved:    %d/%d" % (num_loans, total_loans))
   print("Loans given:       $ %.1f" % loans_given)
@@ -140,7 +150,7 @@ def choose_loans(model, X_loans, y_loans, X_scaler, y_scaler, fund_given, thresh
     X_loaned = X_loaned[is_confident_enough,:]
     y_loaned = y_loaned[is_confident_enough]
 
-  elif version == "loan_amount_and_variance":
+  elif version == "loan_amount_and_variance" or version == SELF_UPDATING_GP:
     loan_amount = get_loan_amnt(X_loans, X_scaler)
     lower_q, upper_q  = model.predict_quantiles(X_loans, quantiles=conf_quantile)
     lower_q = y_scaler.inverse_transform(lower_q).reshape(-1)
@@ -161,7 +171,7 @@ def choose_loans(model, X_loans, y_loans, X_scaler, y_scaler, fund_given, thresh
     y_loaned = y_loaned[is_ratio_above_threshold]
 
   # TODO: Implement Bayesian Optimization HERE
-  elif version == "bayesian_optimization":
+  elif version == BAYESIAN_OPTIMIZATION:
     mean, var = model.predict(X_loans)
     acquisition = mean + np.sqrt(var)*kappa
     acquisition = y_scaler.inverse_transform(acquisition).reshape(-1)
@@ -196,6 +206,7 @@ def simulate_N_time_periods(model, X, y, X_scaler, y_scaler, threshold, num_peri
   remaining_bay_opt_steps = bay_opt_steps
   
   for period in range(num_periods):
+    print(remaining_bay_opt_steps)
     if period % 10 == 0: print("Simulating period %d..." % period)
     performance = simulate_time_period(model, X, y, X_scaler, y_scaler, threshold,
                                       fund_given=fund_given, 
@@ -210,16 +221,18 @@ def simulate_N_time_periods(model, X, y, X_scaler, y_scaler, threshold, num_peri
     performances[period,:] = performance
 
     # Update remaining Bayesian Optimizing steps
-    remaining_bay_opt_steps -= num_months
-    if remaining_bay_opt_steps < 0:
-      remaining_bay_opt_steps = 0
+    if version == BAYESIAN_OPTIMIZATION:
+      remaining_bay_opt_steps -= num_months
+      if remaining_bay_opt_steps <= 0:
+        version = 'loan_amount_and_variance'
     
   return performances
 
 def simulate_time_period(model, X, y, X_scaler, y_scaler, threshold, 
                          fund_given=1e7, num_months=180, incoming_loans_per_time_period=50,
                          conf_quantile=(30,100), optimize_for="profits", 
-                         version="threshold_only", kappa=1., bay_opt_steps=-1, model_type="gp"):
+                         version="threshold_only", kappa=1., bay_opt_steps=-1,
+                         gp_update_steps=-1, model_type="gp"):
   """
   Simulate having a portfolio with FUND_GIVEN ($) and NUM_MONTHS (months) to make loans,
   where there will be new INCOMING_LOANS_PER_TIME_PERIOD (loans/month) that is available every month.
@@ -261,15 +274,26 @@ def simulate_time_period(model, X, y, X_scaler, y_scaler, threshold,
                                       model_type=model_type)
     
     # TODO: Implement Bayesian Optimization HERE
-    if version == 'bayesian_optimization':
-      print(t)
-      X_added = np.unique(np.concatenate((model.X, X_loaned), axis=0), axis=0)
-      y_added = np.unique(np.concatenate((model.Y, y_loaned.reshape(-1, 1)), axis=0), axis=0)
-      model.set_XY(X=X_added, Y=y_added)
-      model.optimize()
-      bay_opt_steps -= 1
+    if version == BAYESIAN_OPTIMIZATION:
       if bay_opt_steps == 0:
-        version = 'loan_amount_and_variance'
+        version = LOAN_AMOUNT_AND_VARIANCE
+      else:
+        X_added = np.unique(np.concatenate((model.X, X_loaned), axis=0), axis=0)
+        y_added = np.unique(np.concatenate((model.Y, y_loaned.reshape(-1, 1)), axis=0), axis=0)
+        model.set_XY(X=X_added, Y=y_added)
+        model.optimize()
+        bay_opt_steps -= 1
+    
+    # TODO: Implement self-updating GP here
+    if version == SELF_UPDATING_GP:
+      if gp_update_steps == 0:
+        version = LOAN_AMOUNT_AND_VARIANCE
+      else:
+        X_added = np.unique(np.concatenate((model.X, X_loaned), axis=0), axis=0)
+        y_added = np.unique(np.concatenate((model.Y, y_loaned.reshape(-1, 1)), axis=0), axis=0)
+        model.set_XY(X=X_added, Y=y_added)
+        model.optimize()
+        gp_update_steps -= 1
 
     # Update portfolio status
     portfolio.make_loans(X_loaned, y_loaned, X_scaler)
