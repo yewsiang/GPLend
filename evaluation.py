@@ -1,4 +1,3 @@
-
 import numpy as np
 from sklearn.svm import SVR
 from sklearn.linear_model import LinearRegression, HuberRegressor
@@ -11,6 +10,13 @@ def evaluate_model(model, X, y):
 
   print("Mean absolute error: %.3f" % mean_abs_err)
   print("R^2 Score:           %.3f" % score)
+
+def evaluate_gp_model(model, X, y, y_scaler):
+  pred, conf = model.predict(X)
+  pred = y_scaler.inverse_transform(pred)
+  mean_abs_err = np.mean(np.abs(pred - y))
+
+  print("Mean absolute error: %.3f" % mean_abs_err)
 
 def train_and_test_other_models(X_train, y_train, X_test, y_test, X_scaler):
   # Linear Regression
