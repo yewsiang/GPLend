@@ -1,4 +1,6 @@
 
+import os
+import pickle
 import numpy as np
 from features import *
 import GPy as gpy
@@ -243,6 +245,24 @@ def simulate_N_time_periods(model, X, y, X_scaler, y_scaler, threshold, num_peri
     #     version = 'loan_amount_and_variance'
     
   return performances
+
+def store_performance_results(performances, meta_info, filename):
+  """
+  Store performances of simulation so there is no need for recomputation.
+  """
+  basedir = os.path.dirname(filename)
+  if not os.path.exists(basedir):
+    os.makedirs(basedir)
+
+  data = [meta_info, performances]
+  pickle.dump(data, open(filename + ".pkl", "wb"))
+
+def load_performance_results(filename):
+  """
+  Load performances of simulation that was stored.
+  """
+  meta_info, performances = pickle.load(open(filename + ".pkl", "rb"), encoding='latin1')
+  return meta_info, performances
 
 def simulate_time_period(model, X, y, X_scaler, y_scaler, threshold, 
                          fund_given=1e7, num_months=180, incoming_loans_per_time_period=50,

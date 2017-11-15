@@ -79,7 +79,7 @@ print(np.mean(np.sum(perf_others[:,:,0], axis=1)))
 
 
 # Web app
-from flask import Flask, render_template, url_for, redirect, request
+from flask import Flask, render_template, request
 app = Flask(__name__)
 
 

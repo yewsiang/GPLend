@@ -1,4 +1,4 @@
-
+# -*- coding: utf-8 -*-
 # Only these columns will be kept from the raw CSV dataset
 # The values that are tagged to these headers are to index them into an array
 data_headers = {
@@ -83,7 +83,7 @@ feature_fn = OrderedDict([
 
 def get_preprocessed_data(filename, cols):
   # Load the relevant attributes and convert them into a usable dtype
-  with open(filename, encoding='utf-8') as csvfile:
+  with open(filename) as csvfile:
     data = []
     N_data = len(data_headers)
     reader = csv.reader(csvfile, delimiter=",")
