@@ -135,12 +135,17 @@ def load_dataset(filename):
   features = get_features(data)
   return features, data
 
-def get_train_test_split(data, test_size=0.3, random_state=0):
+def get_train_test_split(data, test_size=0.3, train_size=0.7, random_state=0):
   X = data[:,:-2]
   # Note 2nd last col not used for training because it is categorical
   y = data[:,-1]
-  X_train, X_test, y_train, y_test = train_test_split(X, y, 
-                                      test_size=test_size, 
+  if train_size > 0:
+    X_train, X_test, y_train, y_test = train_test_split(X, y,
+                                      train_size=train_size,
+                                      random_state=random_state)
+  else:
+    X_train, X_test, y_train, y_test = train_test_split(X, y,
+                                      test_size=test_size,
                                       random_state=random_state)
   return X_train, X_test, y_train, y_test
 

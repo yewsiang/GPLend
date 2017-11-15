@@ -1,6 +1,7 @@
 
 import numpy as np
 from features import *
+import GPy as gpy
 
 PORTFOLIO_PERFORMANCE_DIMENSIONS = 5
 
@@ -196,35 +197,50 @@ def choose_loans(model, X_loans, y_loans, X_scaler, y_scaler, fund_given, thresh
 def simulate_N_time_periods(model, X, y, X_scaler, y_scaler, threshold, num_periods=100, 
                            fund_given=1e7, num_months=180, incoming_loans_per_time_period=50,
                            conf_quantile=(30,100), optimize_for="profits", 
-                           version="threshold_only", kappa=1., bay_opt_steps=-1, model_type="gp", seed=0):
+                           version="threshold_only",
+                            kappa=1., bay_opt_steps=-1,
+                            gp_update_steps=-1,
+                            model_type="gp", seed=0):
   np.random.seed(seed)
   performances = np.zeros((num_periods, num_months, PORTFOLIO_PERFORMANCE_DIMENSIONS))
   
   # Preprocessing number of Bayesian Optimizing steps
   if bay_opt_steps == -1:
-    bay_opt_steps = num_periods * num_months
-  remaining_bay_opt_steps = bay_opt_steps
+    bay_opt_steps = num_months
+  if gp_update_steps == -1:
+    gp_update_steps = num_months
+  # remaining_bay_opt_steps = bay_opt_steps if version == BAYESIAN_OPTIMIZATION else 0
+  # remaining_gp_update_steps = gp_update_steps if version == SELF_UPDATING_GP else 0
   
   for period in range(num_periods):
-    print(remaining_bay_opt_steps)
-    if period % 10 == 0: print("Simulating period %d..." % period)
-    performance = simulate_time_period(model, X, y, X_scaler, y_scaler, threshold,
-                                      fund_given=fund_given, 
-                                      num_months=num_months, 
-                                      incoming_loans_per_time_period=incoming_loans_per_time_period,
-                                      conf_quantile=conf_quantile,
-                                      optimize_for=optimize_for, 
-                                      version=version,
-                                      bay_opt_steps=min(remaining_bay_opt_steps, num_months),
-                                      kappa=kappa,
-                                      model_type=model_type)
+    # print(remaining_bay_opt_steps)
+    if period % 1 == 0: print("Simulating period %d..." % period)
+    performance = simulate_time_period(model.copy(),
+                                       X, y, X_scaler, y_scaler, threshold,
+                                       fund_given=fund_given,
+                                       num_months=num_months,
+                                       incoming_loans_per_time_period=incoming_loans_per_time_period,
+                                       conf_quantile=conf_quantile,
+                                       optimize_for=optimize_for,
+                                       version=version,
+                                       bay_opt_steps=min(bay_opt_steps, num_months),
+                                       gp_update_steps=min(gp_update_steps, num_months),
+                                       kappa=kappa,
+                                       model_type=model_type)
+    
     performances[period,:] = performance
 
-    # Update remaining Bayesian Optimizing steps
-    if version == BAYESIAN_OPTIMIZATION:
-      remaining_bay_opt_steps -= num_months
-      if remaining_bay_opt_steps <= 0:
-        version = 'loan_amount_and_variance'
+    # # Update remaining Bayesian Optimizing steps
+    # if version == BAYESIAN_OPTIMIZATION:
+    #   remaining_bay_opt_steps -= num_months
+    #   if remaining_bay_opt_steps <= 0:
+    #     version = 'loan_amount_and_variance'
+    #
+    # # Update remaining GP update steps
+    # if version == SELF_UPDATING_GP:
+    #   remaining_gp_update_steps -= num_months
+    #   if remaining_gp_update_steps <= 0:
+    #     version = 'loan_amount_and_variance'
     
   return performances
 
@@ -251,6 +267,8 @@ def simulate_time_period(model, X, y, X_scaler, y_scaler, threshold,
   # Preprocessing number of Bayesian Optimizing steps
   if bay_opt_steps == -1:
     bay_opt_steps = num_months
+  if gp_update_steps == -1:
+    gp_update_steps = num_months
 
   for t in range(num_months):
     # Simulate interest flows current loans
@@ -272,15 +290,22 @@ def simulate_time_period(model, X, y, X_scaler, y_scaler, threshold,
                                       version=version,
                                       kappa=kappa,
                                       model_type=model_type)
+    # Update portfolio status
+    portfolio.make_loans(X_loaned, y_loaned, X_scaler)
+    
+    if not (X_loaned.size and y_loaned.size):
+      continue
     
     # TODO: Implement Bayesian Optimization HERE
     if version == BAYESIAN_OPTIMIZATION:
       if bay_opt_steps == 0:
         version = LOAN_AMOUNT_AND_VARIANCE
       else:
+        print(bay_opt_steps)
         X_added = np.unique(np.concatenate((model.X, X_loaned), axis=0), axis=0)
         y_added = np.unique(np.concatenate((model.Y, y_loaned.reshape(-1, 1)), axis=0), axis=0)
-        model.set_XY(X=X_added, Y=y_added)
+        # model.set_XY(X=X_added, Y=y_added)
+        model = gpy.models.GPRegression(X_added, y_added, kernel=model.kern)
         model.optimize()
         bay_opt_steps -= 1
     
@@ -289,14 +314,18 @@ def simulate_time_period(model, X, y, X_scaler, y_scaler, threshold,
       if gp_update_steps == 0:
         version = LOAN_AMOUNT_AND_VARIANCE
       else:
+        print("GP Update " + str(gp_update_steps))
         X_added = np.unique(np.concatenate((model.X, X_loaned), axis=0), axis=0)
         y_added = np.unique(np.concatenate((model.Y, y_loaned.reshape(-1, 1)), axis=0), axis=0)
-        model.set_XY(X=X_added, Y=y_added)
+        try:
+          model = gpy.models.GPRegression(X_added, y_added, kernel=model.kern)
+        except:
+          print(X_added)
+          print()
+          print(y_added)
+          raise
         model.optimize()
         gp_update_steps -= 1
-
-    # Update portfolio status
-    portfolio.make_loans(X_loaned, y_loaned, X_scaler)
 
   # Report performance
   performance = portfolio.report()
@@ -319,6 +348,8 @@ class Portfolio(object):
     self.virtual_profits_across_time = [] 
 
   def make_loans(self, X_loans, y_loans, X_scaler):
+    #print("=====")
+    #print(X_loans.shape)
     # No loans
     if X_loans.shape[0] == 0:
       self.funds_across_time.append(self.funds)
