@@ -195,9 +195,9 @@ def choose_loans(model, X_loans, y_loans, X_scaler, y_scaler, fund_given, thresh
   return X_loaned, y_loaned
 
 def simulate_N_time_periods(model, X, y, X_scaler, y_scaler, threshold, num_periods=100, 
-                           fund_given=1e7, num_months=180, incoming_loans_per_time_period=50,
-                           conf_quantile=(30,100), optimize_for="profits", 
-                           version="threshold_only",
+                            fund_given=1e7, num_months=180, incoming_loans_per_time_period=50,
+                            conf_quantile=(30,100), optimize_for="profits",
+                            version="threshold_only",
                             kappa=1., bay_opt_steps=-1,
                             gp_update_steps=-1,
                             model_type="gp", seed=0):
@@ -273,7 +273,7 @@ def simulate_time_period(model, X, y, X_scaler, y_scaler, threshold,
   for t in range(num_months):
     # Simulate interest flows current loans
     portfolio.update_period()
-
+    
     # Update portfolio
     # TODO
 
@@ -302,10 +302,9 @@ def simulate_time_period(model, X, y, X_scaler, y_scaler, threshold,
         version = LOAN_AMOUNT_AND_VARIANCE
       else:
         print(bay_opt_steps)
-        X_added = np.unique(np.concatenate((model.X, X_loaned), axis=0), axis=0)
-        y_added = np.unique(np.concatenate((model.Y, y_loaned.reshape(-1, 1)), axis=0), axis=0)
-        # model.set_XY(X=X_added, Y=y_added)
-        model = gpy.models.GPRegression(X_added, y_added, kernel=model.kern)
+        X_added = np.concatenate((model.X, X_loaned), axis=0)
+        y_added = np.concatenate((model.Y, y_scaler.transform(y_loaned.reshape(-1, 1))), axis=0)
+        model.set_XY(X=X_added, Y=y_added)
         model.optimize()
         bay_opt_steps -= 1
     
@@ -314,16 +313,9 @@ def simulate_time_period(model, X, y, X_scaler, y_scaler, threshold,
       if gp_update_steps == 0:
         version = LOAN_AMOUNT_AND_VARIANCE
       else:
-        print("GP Update " + str(gp_update_steps))
-        X_added = np.unique(np.concatenate((model.X, X_loaned), axis=0), axis=0)
-        y_added = np.unique(np.concatenate((model.Y, y_loaned.reshape(-1, 1)), axis=0), axis=0)
-        try:
-          model = gpy.models.GPRegression(X_added, y_added, kernel=model.kern)
-        except:
-          print(X_added)
-          print()
-          print(y_added)
-          raise
+        X_added = np.concatenate((model.X, X_loaned), axis=0)
+        y_added = np.concatenate((model.Y, y_scaler.transform(y_loaned.reshape(-1, 1))), axis=0)
+        model.set_XY(X=X_added, Y=y_added)
         model.optimize()
         gp_update_steps -= 1
 
