@@ -175,6 +175,11 @@ def simulate_N_time_periods(model, X, y, X_scaler, y_scaler, threshold, num_peri
                            conf_quantile=(30,100), optimize_for="profits", 
                            version="threshold_only", model_type="gp", seed=0):
   np.random.seed(seed)
+  # # shuffle the dataset
+  # perm = np.random.permutation(X.shape[0])
+  # X = X[perm,:]
+  # y = y[perm]
+
   performances = np.zeros((num_periods, num_months, PORTFOLIO_PERFORMANCE_DIMENSIONS))
   for period in range(num_periods):
     if period % 10 == 0: print("Simulating period %d..." % period)
@@ -215,12 +220,14 @@ def simulate_time_period(model, X, y, X_scaler, y_scaler, threshold,
   Simulate having a portfolio with FUND_GIVEN ($) and NUM_MONTHS (months) to make loans,
   where there will be new INCOMING_LOANS_PER_TIME_PERIOD (loans/month) that is available every month.
 
-  Loans will be made using the model and specified threshold.
+  Loans will be made in the model and specified threshold.
 
   Evaluation metrics such as profits made at the end of the entire time period will be collected.
   """
   N, D = X.shape
   portfolio = Portfolio(fund_given, num_months)
+  assert(num_months * incoming_loans_per_time_period <= N)
+  index = 0
 
   for t in range(num_months):
     # Simulate interest flows current loans
@@ -233,6 +240,12 @@ def simulate_time_period(model, X, y, X_scaler, y_scaler, threshold,
     loan_application_ids = np.random.choice(N, incoming_loans_per_time_period, replace=False)
     X_loan_app = X[loan_application_ids,:]
     y_loan_app = y[loan_application_ids] # Actual outcome of loan (which we wouldn't know)
+
+    # drawing without replacement
+    # X_loan_app = X[index:index+incoming_loans_per_time_period,:]
+    # y_loan_app = y[index:index+incoming_loans_per_time_period]
+    # index = index + incoming_loans_per_time_period
+    # print(index)
 
     # Choose the loans to be made using different optim
     X_loaned, y_loaned = choose_loans(model, X_loan_app, y_loan_app, X_scaler, y_scaler, 
