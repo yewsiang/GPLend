@@ -13,7 +13,7 @@ def maximum_entropy_sampling(X, y, sampleSize):
 
     # pick two points to initialize a GP
     # selected_index = [0,1]
-    selected_index = np.random.choice(size, 4, replace=False)
+    selected_index = np.random.choice(size, 5, replace=False)
     X_o = X[selected_index,:]
     y_o = y[selected_index]
     
@@ -23,7 +23,7 @@ def maximum_entropy_sampling(X, y, sampleSize):
     # Initialize GP Model
     kernel = GPy.kern.RBF(input_dim=dim, variance=1., lengthscale=1.)
     
-    for i in range(sampleSize - 4):
+    for i in range(sampleSize - 5):
         # update gp model
         gp_model = GPy.models.GPRegression(X_o, y_o, kernel)
         gp_model.optimize()
@@ -52,7 +52,8 @@ def maximum_mutual_information_sampling(X, y, percentage):
     kernel = GPy.kern.RBF(input_dim=dim, variance=1., lengthscale=1.)
 
     for i in range(sampleSize - 2):
-        gp_model_o = GPy.models.GPRegression(X_o, y_o, kernel)
+        print(i)
+        gp_model_o = GPy.models.SparseGPRegression(X_o, y_o, kernel)
         gp_model_o.optimize()
 
         # remove observed points
@@ -62,8 +63,6 @@ def maximum_mutual_information_sampling(X, y, percentage):
         max_index = 0
         max_mutual_info = 0
 
-        start_time = time.time()
-
         for j in range(X_u.shape[0]):
 
             X_selected = X_u[j, :]
@@ -71,7 +70,7 @@ def maximum_mutual_information_sampling(X, y, percentage):
             X_u_temp = np.delete(X_u, j, axis=0)
             y_u_temp = np.delete(y_u, j)
 
-            gp_model_u = GPy.models.GPRegression(X_u_temp, y_u_temp.reshape(-1,1), kernel)
+            gp_model_u = GPy.models.SparseGPRegression(X_u_temp, y_u_temp.reshape(-1,1), kernel)
             gp_model_u.optimize()
 
             _, var_o = gp_model_o.predict(X_selected.reshape(1,-1))
@@ -83,8 +82,6 @@ def maximum_mutual_information_sampling(X, y, percentage):
                 max_mutual_info = mutual_info
                 max_index = j
 
-        elapsed_time = time.time() - start_time
-        print(elapsed_time)
 
         selected_index = j
         X_o = np.vstack((X_o, X_u[selected_index, :]))
@@ -113,8 +110,9 @@ def DARE_sampling(X, y, sampleSize, X_scaler):
         y_u = np.delete(y_u, selected_index)
 
         mean, conf = gp_model.predict(X_u)
-        etp = get_expected_total_payment(X_u, X_scaler).reshape(-1,1)
-        result = np.divide(np.absolute(etp - mean), conf)
+        loan_amount = get_loan_amnt(X_u, X_scaler).reshape(-1,1)
+        ratio = mean / loan_amount
+        result = np.divide(np.absolute(1.1 - ratio), conf)
         selected_index = np.argmin(result)
         X_o = np.vstack((X_o, X_u[selected_index, :]))
         y_o = np.vstack((y_o, y_u[selected_index]))
@@ -122,9 +120,10 @@ def DARE_sampling(X, y, sampleSize, X_scaler):
     return X_o, y_o
 
 def MSE_sampling(X, y, sampleSize):
-    selected_index = [0,1]
+    selected_index = np.random.choice(size, 5, replace=False)
     X_o = X[selected_index,:]
     y_o = y[selected_index]
+
     size,dim = X.shape
     X_u = np.copy(X)
     y_u = np.copy(y)
@@ -132,7 +131,7 @@ def MSE_sampling(X, y, sampleSize):
     # Initialize GP Model
     kernel = GPy.kern.RBF(input_dim=dim, variance=1., lengthscale=1.)
     
-    for i in range(sampleSize - 2):
+    for i in range(sampleSize - 5):
         print(i)
         # remove observed points
         X_u = np.delete(X_u, selected_index, axis=0)
@@ -160,6 +159,7 @@ def MSE_sampling(X, y, sampleSize):
                 min_index = j
 
         selected_index = min_index
+        print(selected_index)
 
         X_o = np.vstack((X_o, X_u[selected_index, :]))
         y_o = np.vstack((y_o, y_u[selected_index]))
