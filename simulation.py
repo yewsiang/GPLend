@@ -171,7 +171,7 @@ def choose_loans(model, X_loans, y_loans, X_scaler, y_scaler, fund_given, thresh
   return X_loaned, y_loaned
 
 def simulate_N_time_periods(model, X, y, X_scaler, y_scaler, threshold, num_periods=100, 
-                           fund_given=1e7, num_months=180, incoming_loans_per_time_period=50,
+                           flow=1e7, num_months=180, incoming_loans_per_time_period=50,
                            conf_quantile=(30,100), optimize_for="profits", 
                            version="threshold_only", model_type="gp", seed=0):
   np.random.seed(seed)
@@ -179,7 +179,7 @@ def simulate_N_time_periods(model, X, y, X_scaler, y_scaler, threshold, num_peri
   for period in range(num_periods):
     if period % 10 == 0: print("Simulating period %d..." % period)
     performance = simulate_time_period(model, X, y, X_scaler, y_scaler, threshold,
-                                      fund_given=fund_given, 
+                                      flow=flow, 
                                       num_months=num_months, 
                                       incoming_loans_per_time_period=incoming_loans_per_time_period,
                                       conf_quantile=conf_quantile,
@@ -208,7 +208,7 @@ def load_performance_results(filename):
   return meta_info, performances
 
 def simulate_time_period(model, X, y, X_scaler, y_scaler, threshold, 
-                         fund_given=1e7, num_months=180, incoming_loans_per_time_period=50,
+                         flow=1e7, num_months=180, incoming_loans_per_time_period=50,
                          conf_quantile=(30,100), optimize_for="profits", 
                          version="threshold_only", model_type="gp"):
   """
@@ -220,7 +220,7 @@ def simulate_time_period(model, X, y, X_scaler, y_scaler, threshold,
   Evaluation metrics such as profits made at the end of the entire time period will be collected.
   """
   N, D = X.shape
-  portfolio = Portfolio(fund_given, num_months)
+  portfolio = Portfolio(flow, num_months)
 
   for t in range(num_months):
     # Simulate interest flows current loans
@@ -250,10 +250,11 @@ def simulate_time_period(model, X, y, X_scaler, y_scaler, threshold,
   return performance
     
 class Portfolio(object):
-  def __init__(self, initial_funds, time_period):
-    self.initial_funds = initial_funds
+  def __init__(self, flow, time_period):
+    self.flow = flow
+    # self.initial_funds = initial_funds
     self.time_period   = time_period
-    self.funds         = initial_funds
+    self.funds         = 0
     self.loans         = []
 
     # Keeping track of loans across different time periods.
@@ -301,6 +302,9 @@ class Portfolio(object):
   def update_period(self):
     updated_loans = []
     payments_rec_per_time_period = []
+
+    # new money flow into the fund every month
+    self.funds += self.flow
     for loan in self.loans:
       installment, term, total_payment = loan
 
