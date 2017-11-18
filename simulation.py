@@ -198,13 +198,14 @@ def choose_loans(model, X_loans, y_loans, X_scaler, y_scaler, fund_given, thresh
 
 def simulate_N_time_periods(model, X, y, X_scaler, y_scaler, threshold, num_periods=100, 
                             fund_given=1e7, num_months=180,
-                            incoming_fund_per_month=1e5,
+                            flow=1e7,
                             incoming_loans_per_time_period=50,
                             conf_quantile=(30,100), optimize_for="profits",
                             version="threshold_only",
                             kappa=1., bay_opt_steps=-1,
                             gp_update_steps=-1,
                             model_type="gp", seed=0):
+
   np.random.seed(seed)
   performances = np.zeros((num_periods, num_months, PORTFOLIO_PERFORMANCE_DIMENSIONS))
   
@@ -223,7 +224,7 @@ def simulate_N_time_periods(model, X, y, X_scaler, y_scaler, threshold, num_peri
                                        X, y, X_scaler, y_scaler, threshold,
                                        fund_given=fund_given,
                                        num_months=num_months,
-                                       incoming_fund_per_month=incoming_fund_per_month,
+                                       flow=flow,
                                        incoming_loans_per_time_period=incoming_loans_per_time_period,
                                        conf_quantile=conf_quantile,
                                        optimize_for=optimize_for,
@@ -267,11 +268,12 @@ def load_performance_results(filename):
   meta_info, performances = pickle.load(open(filename + ".pkl", "rb"), encoding='latin1')
   return meta_info, performances
 
-def simulate_time_period(model, X, y, X_scaler, y_scaler, threshold, 
+def simulate_time_period(model, X, y, X_scaler, y_scaler, threshold,
                          fund_given=1e7, num_months=180,
                          incoming_fund_per_month=1e5,
+                         flow=1e7,
                          incoming_loans_per_time_period=50,
-                         conf_quantile=(30,100), optimize_for="profits", 
+                         conf_quantile=(30,100), optimize_for="profits",
                          version="threshold_only", kappa=1., bay_opt_steps=-1,
                          gp_update_steps=-1, model_type="gp"):
   """
@@ -283,7 +285,7 @@ def simulate_time_period(model, X, y, X_scaler, y_scaler, threshold,
   Evaluation metrics such as profits made at the end of the entire time period will be collected.
   """
   N, D = X.shape
-  portfolio = Portfolio(fund_given, num_months, incoming_fund_per_month=incoming_fund_per_month)
+  portfolio = Portfolio(fund_given, num_months, flow=flow)
   
   # Description of bay_opt_steps:
   # Keep updating model by Bayesian Optimization until bay_opt_steps steps is reached
@@ -351,10 +353,11 @@ def simulate_time_period(model, X, y, X_scaler, y_scaler, threshold,
   return performance
     
 class Portfolio(object):
-  def __init__(self, initial_funds, time_period, incoming_fund_per_month=0):
+  def __init__(self, initial_funds, time_period, flow=0.):
     self.initial_funds = initial_funds
+    self.flow = flow
     self.time_period   = time_period
-    self.funds         = initial_funds
+    self.funds         = 0
     self.loans         = []
 
     # Keeping track of loans across different time periods.
@@ -365,7 +368,6 @@ class Portfolio(object):
     self.payments_rec_across_time    = []
     # Profits made the moment the loan was made (used for performance evaluation)
     self.virtual_profits_across_time = []
-    self.incoming_fund_per_month = incoming_fund_per_month
 
   def make_loans(self, X_loans, y_loans, X_scaler):
     #print("=====")
@@ -406,9 +408,8 @@ class Portfolio(object):
     updated_loans = []
     payments_rec_per_time_period = []
     
-    # increase fund by incoming_fund_per_month
-    self.funds += self.incoming_fund_per_month
-    
+    # new money flow into the fund every month
+    self.funds += self.flow
     for loan in self.loans:
       installment, term, total_payment = loan
 
