@@ -1,4 +1,4 @@
-
+import time
 import os
 import pickle
 import numpy as np
@@ -197,7 +197,9 @@ def choose_loans(model, X_loans, y_loans, X_scaler, y_scaler, fund_given, thresh
   return X_loaned, y_loaned
 
 def simulate_N_time_periods(model, X, y, X_scaler, y_scaler, threshold, num_periods=100, 
-                            fund_given=1e7, num_months=180, incoming_loans_per_time_period=50,
+                            fund_given=1e7, num_months=180,
+                            incoming_fund_per_month=1e5,
+                            incoming_loans_per_time_period=50,
                             conf_quantile=(30,100), optimize_for="profits",
                             version="threshold_only",
                             kappa=1., bay_opt_steps=-1,
@@ -221,6 +223,7 @@ def simulate_N_time_periods(model, X, y, X_scaler, y_scaler, threshold, num_peri
                                        X, y, X_scaler, y_scaler, threshold,
                                        fund_given=fund_given,
                                        num_months=num_months,
+                                       incoming_fund_per_month=incoming_fund_per_month,
                                        incoming_loans_per_time_period=incoming_loans_per_time_period,
                                        conf_quantile=conf_quantile,
                                        optimize_for=optimize_for,
@@ -265,7 +268,9 @@ def load_performance_results(filename):
   return meta_info, performances
 
 def simulate_time_period(model, X, y, X_scaler, y_scaler, threshold, 
-                         fund_given=1e7, num_months=180, incoming_loans_per_time_period=50,
+                         fund_given=1e7, num_months=180,
+                         incoming_fund_per_month=1e5,
+                         incoming_loans_per_time_period=50,
                          conf_quantile=(30,100), optimize_for="profits", 
                          version="threshold_only", kappa=1., bay_opt_steps=-1,
                          gp_update_steps=-1, model_type="gp"):
@@ -278,7 +283,7 @@ def simulate_time_period(model, X, y, X_scaler, y_scaler, threshold,
   Evaluation metrics such as profits made at the end of the entire time period will be collected.
   """
   N, D = X.shape
-  portfolio = Portfolio(fund_given, num_months)
+  portfolio = Portfolio(fund_given, num_months, incoming_fund_per_month=incoming_fund_per_month)
   
   # Description of bay_opt_steps:
   # Keep updating model by Bayesian Optimization until bay_opt_steps steps is reached
@@ -296,6 +301,7 @@ def simulate_time_period(model, X, y, X_scaler, y_scaler, threshold,
     
     # Update portfolio
     # TODO
+    print('month: {}'.format(t))
 
     # Simulate loan applications coming in by sampling from data
     loan_application_ids = np.random.choice(N, incoming_loans_per_time_period, replace=False)
@@ -303,7 +309,7 @@ def simulate_time_period(model, X, y, X_scaler, y_scaler, threshold,
     y_loan_app = y[loan_application_ids] # Actual outcome of loan (which we wouldn't know)
 
     # Choose the loans to be made using different optim
-    X_loaned, y_loaned = choose_loans(model, X_loan_app, y_loan_app, X_scaler, y_scaler, 
+    X_loaned, y_loaned = choose_loans(model, X_loan_app, y_loan_app, X_scaler, y_scaler,
                                       portfolio.get_funds(), threshold, 
                                       conf_quantile=conf_quantile,
                                       optimize_for=optimize_for,
@@ -318,10 +324,10 @@ def simulate_time_period(model, X, y, X_scaler, y_scaler, threshold,
     
     # TODO: Implement Bayesian Optimization HERE
     if version == BAYESIAN_OPTIMIZATION:
-      if bay_opt_steps == 0:
+      if bay_opt_steps <= 0:
         version = LOAN_AMOUNT_AND_VARIANCE
       else:
-        print(bay_opt_steps)
+        print('updates remaining: {}'.format(bay_opt_steps))
         X_added = np.concatenate((model.X, X_loaned), axis=0)
         y_added = np.concatenate((model.Y, y_scaler.transform(y_loaned.reshape(-1, 1))), axis=0)
         model.set_XY(X=X_added, Y=y_added)
@@ -330,9 +336,10 @@ def simulate_time_period(model, X, y, X_scaler, y_scaler, threshold,
     
     # TODO: Implement self-updating GP here
     if version == SELF_UPDATING_GP:
-      if gp_update_steps == 0:
+      if gp_update_steps <= 0:
         version = LOAN_AMOUNT_AND_VARIANCE
       else:
+        print('updates remaining: {}'.format(gp_update_steps))
         X_added = np.concatenate((model.X, X_loaned), axis=0)
         y_added = np.concatenate((model.Y, y_scaler.transform(y_loaned.reshape(-1, 1))), axis=0)
         model.set_XY(X=X_added, Y=y_added)
@@ -344,7 +351,7 @@ def simulate_time_period(model, X, y, X_scaler, y_scaler, threshold,
   return performance
     
 class Portfolio(object):
-  def __init__(self, initial_funds, time_period):
+  def __init__(self, initial_funds, time_period, incoming_fund_per_month=0):
     self.initial_funds = initial_funds
     self.time_period   = time_period
     self.funds         = initial_funds
@@ -357,7 +364,8 @@ class Portfolio(object):
     self.funds_across_time           = []
     self.payments_rec_across_time    = []
     # Profits made the moment the loan was made (used for performance evaluation)
-    self.virtual_profits_across_time = [] 
+    self.virtual_profits_across_time = []
+    self.incoming_fund_per_month = incoming_fund_per_month
 
   def make_loans(self, X_loans, y_loans, X_scaler):
     #print("=====")
@@ -397,6 +405,10 @@ class Portfolio(object):
   def update_period(self):
     updated_loans = []
     payments_rec_per_time_period = []
+    
+    # increase fund by incoming_fund_per_month
+    self.funds += self.incoming_fund_per_month
+    
     for loan in self.loans:
       installment, term, total_payment = loan
 

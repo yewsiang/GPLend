@@ -81,9 +81,9 @@ feature_fn = OrderedDict([
     ("total_pymnt",            total_pymnt_fn)
 ])
 
-def get_preprocessed_data(filename, cols):
+def get_preprocessed_data(filename, cols, encoding=None):
   # Load the relevant attributes and convert them into a usable dtype
-  with open(filename) as csvfile:
+  with open(filename, encoding=encoding) as csvfile:
     data = []
     N_data = len(data_headers)
     reader = csv.reader(csvfile, delimiter=",")
@@ -127,10 +127,10 @@ def get_features(data):
   np_data = np.vstack(np_data)
   return np_data
 
-def load_dataset(filename):
+def load_dataset(filename, encoding=None):
   cols = 137
   print("Preprocessing...")
-  data = get_preprocessed_data(filename, cols)
+  data = get_preprocessed_data(filename, cols, encoding=encoding)
   print("Feature Engineering...")
   features = get_features(data)
   return features, data
