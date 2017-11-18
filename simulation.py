@@ -219,7 +219,7 @@ def simulate_N_time_periods(model, X, y, X_scaler, y_scaler, threshold, num_peri
   
   for period in range(num_periods):
     # print(remaining_bay_opt_steps)
-    if period % 1 == 0: print("Simulating period %d..." % period)
+    # if period % 1 == 0: print("Simulating period %d..." % period)
     performance = simulate_time_period(model.copy(),
                                        X, y, X_scaler, y_scaler, threshold,
                                        fund_given=fund_given,
@@ -303,7 +303,7 @@ def simulate_time_period(model, X, y, X_scaler, y_scaler, threshold,
     
     # Update portfolio
     # TODO
-    print('month: {}'.format(t))
+    # print('month: {}'.format(t))
 
     # Simulate loan applications coming in by sampling from data
     loan_application_ids = np.random.choice(N, incoming_loans_per_time_period, replace=False)
