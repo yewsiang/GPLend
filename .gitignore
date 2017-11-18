@@ -16,3 +16,5 @@ out/*
 *.orig
 *.gz
 *.npy
+
+simulation.py
